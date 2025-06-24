@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'schedule_section.dart';
 import 'theme_provider.dart';
+import 'database_helper.dart';
 
 void main() {
   runApp(const ScheduleApp());
@@ -57,202 +58,38 @@ class ScheduleHomePage extends StatefulWidget {
 class _ScheduleHomePageState extends State<ScheduleHomePage> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
+  List<ScheduleItem> _routines = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadRoutines();
+  }
 
-  // Routines are now stored independently of dates - they repeat based on weeklySchedule
-  final List<ScheduleItem> _routines = [
-    ScheduleItem(
-      'Morning Workout',
-      '06:30',
-      '07:30',
-      Colors.blue[800]!,
-      'Gym session - Daily routine',
-      ScheduleType.routine,
-      false,
-      [1, 2, 3, 4, 5], // Monday to Friday
-      85, // 85% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Team Standup',
-      '09:00',
-      '09:30',
-      Colors.blue[800]!,
-      'Daily sync meeting - Mon, Tue, Wed, Thu, Fri',
-      ScheduleType.routine,
-      false,
-      [1, 2, 3, 4, 5], // Monday to Friday
-      92, // 92% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Code Review',
-      '17:00',
-      '18:00',
-      Colors.blue[800]!,
-      'Review pull requests - Mon, Wed, Fri',
-      ScheduleType.routine,
-      false,
-      [1, 3, 5], // Monday, Wednesday, Friday
-      67, // 67% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Call to Mom',
-      '19:00',
-      '19:30',
-      Colors.blue[800]!,
-      'Weekly check-in call',
-      ScheduleType.routine,
-      false,
-      [0], // Sunday only
-      75, // Weekly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Morning Jog',
-      '06:00',
-      '07:00',
-      Colors.blue[800]!,
-      'Outdoor exercise - Daily routine',
-      ScheduleType.routine,
-      false,
-      [1, 2, 3, 4, 5, 6, 0], // Daily
-      78, // 78% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Project Planning',
-      '09:30',
-      '11:00',
-      Colors.blue[800]!,
-      'Sprint planning meeting - Weekly routine',
-      ScheduleType.routine,
-      false,
-      [2], // Tuesday only
-      60, // Weekly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Lunch Meeting',
-      '12:30',
-      '13:30',
-      Colors.blue[800]!,
-      'Business lunch with client - Weekly routine',
-      ScheduleType.routine,
-      false,
-      [2], // Tuesday only
-      45, // Weekly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Development',
-      '14:00',
-      '17:00',
-      Colors.blue[800]!,
-      'Feature implementation - Daily routine',
-      ScheduleType.routine,
-      false,
-      [1, 2, 3, 4, 5], // Weekdays
-      43, // 43% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Yoga Session',
-      '07:00',
-      '08:00',
-      Colors.blue[800]!,
-      'Morning stretch - Daily routine',
-      ScheduleType.routine,
-      false,
-      [1, 2, 3, 4, 5, 6, 0], // Daily
-      91, // 91% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'All Hands Meeting',
-      '10:00',
-      '11:00',
-      Colors.blue[800]!,
-      'Monthly company meeting - Routine',
-      ScheduleType.routine,
-      false,
-      [1], // Monday only
-      85, // Monthly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      '1:1 with Manager',
-      '11:30',
-      '12:00',
-      Colors.blue[800]!,
-      'Weekly performance review',
-      ScheduleType.routine,
-      false,
-      [1], // Monday only
-      55, // 55% progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Weekend Hike',
-      '08:00',
-      '12:00',
-      Colors.blue[800]!,
-      'Weekly nature exploration routine',
-      ScheduleType.routine,
-      false,
-      [6], // Saturday only
-      80, // Weekly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Lunch with Friends',
-      '13:00',
-      '15:00',
-      Colors.blue[800]!,
-      'Weekly social gathering routine',
-      ScheduleType.routine,
-      false,
-      [6], // Saturday only
-      65, // Weekly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Room Rent Due',
-      '09:00',
-      '09:00',
-      Colors.blue[800]!,
-      'Monthly room rent payment routine',
-      ScheduleType.routine,
-      false,
-      [1], // Monday only
-      90, // Monthly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Monthly Budget Review',
-      '20:00',
-      '20:30',
-      Colors.blue[800]!,
-      'Monthly expense planning routine',
-      ScheduleType.routine,
-      false,
-      [1], // Monday only
-      85, // Monthly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-    ScheduleItem(
-      'Insurance Premium',
-      '10:00',
-      '10:00',
-      Colors.blue[800]!,
-      'Quarterly insurance payment routine',
-      ScheduleType.routine,
-      false,
-      [2], // Tuesday only
-      95, // Quarterly routine progress
-      CardDisplayState.compact, // Individual card state
-    ),
-  ];
+  Future<void> _loadRoutines() async {
+    final routines = await _databaseHelper.getAllRoutines();
+    setState(() {
+      _routines = routines;
+    });
+  }
+
+  Future<void> _addRoutine(ScheduleItem routine) async {
+    await _databaseHelper.insertRoutine(routine);
+    _loadRoutines();
+  }
+
+  Future<void> _updateRoutine(ScheduleItem routine) async {
+    await _databaseHelper.updateRoutine(routine);
+    _loadRoutines();
+  }
+
+  Future<void> _deleteRoutine(ScheduleItem routine) async {
+    if (routine.id != null) {
+      await _databaseHelper.deleteRoutine(routine.id!);
+      _loadRoutines();
+    }
+  }
+
   List<ScheduleItem> _getSchedulesForDay(DateTime day) {
     // Get the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday)
     final dayOfWeek = day.weekday % 7; // Convert to 0-6 format where 0=Sunday
@@ -350,8 +187,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
-                ),
-                onDaySelected: (selectedDay, focusedDay) {
+                ),                onDaySelected: (selectedDay, focusedDay) {
                   setState(() {
                     _selectedDay = selectedDay;
                     _focusedDay = focusedDay;
@@ -371,17 +207,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                 selectedDay: _selectedDay,
                 routines: _routines,
                 themeProvider: widget.themeProvider,
-                onScheduleUpdated: (schedule) {
-                  setState(() {
-                    // Update the schedule item in the list
-                    final index = _routines.indexWhere(
-                      (item) => item.title == schedule.title,
-                    );
-                    if (index != -1) {
-                      _routines[index] = schedule;
-                    }
-                  });
-                },
+                onScheduleUpdated: _updateRoutine,
+                onScheduleAdded: _addRoutine,
+                onScheduleDeleted: _deleteRoutine,
               ),
             ),
           ],

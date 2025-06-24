@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_provider.dart';
 
 enum ScheduleType {
@@ -13,6 +12,7 @@ enum CardDisplayState {
 }
 
 class ScheduleItem {
+  int? id; // Database ID
   final String title;
   final String startTime;
   final String endTime;
@@ -23,6 +23,7 @@ class ScheduleItem {
   final int percentage; // Progress percentage (0-100) for routines
   bool isCompleted;
   CardDisplayState cardDisplayState; // Individual card display state
+  final DateTime? createdAt;
 
   ScheduleItem(
     this.title,
@@ -35,6 +36,8 @@ class ScheduleItem {
     this.weeklySchedule = const [],
     this.percentage = 0,
     this.cardDisplayState = CardDisplayState.compact, // Default to compact
+    this.id,
+    this.createdAt,
   ]);
 }
 
@@ -43,6 +46,8 @@ class ScheduleSection extends StatefulWidget {
   final List<ScheduleItem> routines;
   final ThemeProvider themeProvider;
   final Function(ScheduleItem) onScheduleUpdated;
+  final Function(ScheduleItem) onScheduleAdded;
+  final Function(ScheduleItem) onScheduleDeleted;
 
   const ScheduleSection({
     super.key,
@@ -50,6 +55,8 @@ class ScheduleSection extends StatefulWidget {
     required this.routines,
     required this.themeProvider,
     required this.onScheduleUpdated,
+    required this.onScheduleAdded,
+    required this.onScheduleDeleted,
   });
 
   @override
@@ -80,7 +87,6 @@ class _ScheduleSectionState extends State<ScheduleSection> {
 
   Widget _buildScheduleTimeline() {
     final schedules = _getSchedulesForDay(widget.selectedDay);
-
     if (schedules.isEmpty) {
       return Column(
         children: [
@@ -104,11 +110,28 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tap the + button to add a new routine',
+                  'Create your first routine to get started',
                   style: TextStyle(
                     fontSize: 14,
                     color: const Color(0xFF8E8E93), // iOS gray
                     fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => _showCreateRoutineBottomSheet(context),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create Routine'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007AFF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ],
@@ -681,6 +704,13 @@ class _ScheduleSectionState extends State<ScheduleSection> {
             child: Row(
               children: [
                 _buildActionChip(
+                  icon: Icons.add_circle_outline,
+                  label: 'Create Routine',
+                  color: const Color(0xFF007AFF), // iOS blue
+                  onTap: () => _showCreateRoutineBottomSheet(context),
+                ),
+                const SizedBox(width: 8),
+                _buildActionChip(
                   icon: Icons.settings_outlined,
                   label: 'Settings',
                   color: const Color(0xFF8E8E93), // iOS gray
@@ -690,13 +720,14 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                 _buildActionChip(
                   icon: Icons.person_outline,
                   label: 'Profile',
-                  color: const Color(0xFF007AFF), // iOS blue
+                  color: const Color(0xFF34C759), // iOS green
                 ),
                 const SizedBox(width: 8),
                 _buildActionChip(
                   icon: Icons.repeat,
-                  label: 'Routine',
-                  color: const Color(0xFF34C759), // iOS green
+                  label: 'Manage Routines',
+                  color: const Color(0xFF5856D6), // iOS purple
+                  onTap: () => _showRoutineManagementBottomSheet(context),
                 ),
                 const SizedBox(width: 8),
                 _buildActionChip(
@@ -1426,6 +1457,752 @@ class _ScheduleSectionState extends State<ScheduleSection> {
     );
   }
 
+  void _showRoutineManagementBottomSheet(BuildContext context) {
+    int selectedDayIndex =
+        DateTime.now().weekday % 7; // 0=Sunday, 1=Monday, etc.
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => DraggableScrollableSheet(
+                  initialChildSize: 0.8,
+                  minChildSize: 0.6,
+                  maxChildSize: 0.95,
+                  expand: false,
+                  builder:
+                      (context, scrollController) => Container(
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.getCardColor(context),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Handle bar
+                            Container(
+                              margin: const EdgeInsets.only(top: 12),
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: ThemeProvider.getSecondaryTextColor(
+                                  context,
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Header
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.repeat,
+                                    size: 24,
+                                    color: const Color(0xFF34C759),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Routine Management',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: ThemeProvider.getTextColor(
+                                          context,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            ThemeProvider.getSecondaryTextColor(
+                                              context,
+                                            ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 18,
+                                        color:
+                                            ThemeProvider.getSecondaryTextColor(
+                                              context,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Weekly Calendar
+                            _buildWeeklyCalendar(context, selectedDayIndex, (
+                              dayIndex,
+                            ) {
+                              setState(() {
+                                selectedDayIndex = dayIndex;
+                              });
+                            }),
+
+                            const SizedBox(height: 20),
+                            // Day's Routines Section
+                            Expanded(
+                              child: _buildDayRoutinesSection(
+                                context,
+                                selectedDayIndex,
+                                scrollController,
+                                setState,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                ),
+          ),
+    );
+  }
+
+  Widget _buildWeeklyCalendar(
+    BuildContext context,
+    int selectedDayIndex,
+    Function(int) onDaySelected,
+  ) {
+    final dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    final today = DateTime.now().weekday % 7; // Current day index
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: ThemeProvider.getCardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(7, (index) {
+          final isSelected = index == selectedDayIndex;
+          final isToday = index == today;
+          final routinesCount =
+              widget.routines
+                  .where((routine) => routine.weeklySchedule.contains(index))
+                  .length;
+
+          return GestureDetector(
+            onTap: () => onDaySelected(index),
+            child: Container(
+              width: 42,
+              height: 60,
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? const Color(0xFF34C759)
+                        : isToday
+                        ? const Color(0xFF34C759).withOpacity(0.1)
+                        : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+                border:
+                    isToday && !isSelected
+                        ? Border.all(color: const Color(0xFF34C759), width: 1)
+                        : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    dayLabels[index],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          isSelected
+                              ? Colors.white
+                              : isToday
+                              ? const Color(0xFF34C759)
+                              : ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (routinesCount > 0)
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? Colors.white.withOpacity(0.3)
+                                : const Color(0xFF34C759).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$routinesCount',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color:
+                                isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF34C759),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? Colors.white.withOpacity(0.3)
+                                  : ThemeProvider.getSecondaryTextColor(
+                                    context,
+                                  ).withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildDayRoutinesSection(
+    BuildContext context,
+    int selectedDayIndex,
+    ScrollController scrollController,
+    StateSetter setModalState,
+  ) {
+    final dayLabels = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+    final dayRoutines =
+        widget.routines
+            .where(
+              (routine) => routine.weeklySchedule.contains(selectedDayIndex),
+            )
+            .toList();
+
+    // Sort routines by start time
+    dayRoutines.sort(
+      (a, b) => _parseTime(a.startTime).compareTo(_parseTime(b.startTime)),
+    );
+
+    return Column(
+      children: [
+        // Day Header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${dayLabels[selectedDayIndex]} Routines',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: ThemeProvider.getTextColor(context),
+                  ),
+                ),
+              ),
+              Text(
+                '${dayRoutines.length} routine${dayRoutines.length != 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: ThemeProvider.getSecondaryTextColor(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16), // Routines List
+        Expanded(
+          child:
+              dayRoutines.isEmpty
+                  ? _buildEmptyRoutinesState(
+                    context,
+                    dayLabels[selectedDayIndex],
+                  )
+                  : ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: dayRoutines.length,
+                    itemBuilder: (context, index) {
+                      return _buildRoutinePreviewCard(
+                        context,
+                        dayRoutines[index],
+                        index,
+                        setModalState,
+                      );
+                    },
+                  ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyRoutinesState(BuildContext context, String dayName) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.event_available_outlined,
+            size: 64,
+            color: ThemeProvider.getSecondaryTextColor(
+              context,
+            ).withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No routines for $dayName',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: ThemeProvider.getTextColor(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add a routine to get started',
+            style: TextStyle(
+              fontSize: 14,
+              color: ThemeProvider.getSecondaryTextColor(context),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Navigate to add routine
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Add routine feature coming soon!'),
+                  backgroundColor: Color(0xFF34C759),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add Routine'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF34C759),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoutinePreviewCard(
+    BuildContext context,
+    ScheduleItem routine,
+    int index,
+    StateSetter setModalState,
+  ) {
+    bool isExpanded = routine.cardDisplayState == CardDisplayState.full;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: ThemeProvider.getCardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            spreadRadius: 0,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Main card content
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header row
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF34C759),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        routine.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ThemeProvider.getTextColor(context),
+                        ),
+                      ),
+                    ),
+                    // Progress indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF34C759).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${routine.percentage}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF34C759),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () {
+                        // Use the setState from StatefulBuilder to update the bottom sheet
+                        setModalState(() {
+                          routine.cardDisplayState =
+                              isExpanded
+                                  ? CardDisplayState.compact
+                                  : CardDisplayState.full;
+                        });
+                        // Also update the main widget state
+                        widget.onScheduleUpdated(routine);
+                      },
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.getSecondaryTextColor(
+                            context,
+                          ).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Center(
+                          child: AnimatedRotation(
+                            turns: isExpanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 16,
+                              color: ThemeProvider.getSecondaryTextColor(
+                                context,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Time and duration chips
+                Row(
+                  children: [
+                    _buildInfoChip(
+                      context,
+                      Icons.access_time,
+                      _formatTimeToAmPm(routine.startTime),
+                      const Color(0xFF007AFF),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildInfoChip(
+                      context,
+                      Icons.timelapse,
+                      _calculateDuration(routine.startTime, routine.endTime),
+                      const Color(0xFF34C759),
+                    ),
+                  ],
+                ),
+
+                // Expanded content
+                if (isExpanded) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 1,
+                    color: ThemeProvider.getSecondaryTextColor(
+                      context,
+                    ).withOpacity(0.1),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  Text(
+                    routine.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Weekly schedule indicator
+                  _buildMiniWeeklyIndicator(context, routine),
+                  const SizedBox(height: 16),
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildIconActionButton(
+                          context,
+                          Icons.edit_outlined,
+                          const Color(0xFF007AFF),
+                          'Edit routine',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Edit routine feature coming soon!',
+                                ),
+                                backgroundColor: Color(0xFF007AFF),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildIconActionButton(
+                          context,
+                          Icons.delete_outline,
+                          const Color(0xFFFF3B30),
+                          'Delete routine',
+                          () {
+                            _showDeleteRoutineDialog(context, routine);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(
+    BuildContext context,
+    IconData icon,
+    String text,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniWeeklyIndicator(BuildContext context, ScheduleItem routine) {
+    final dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Weekly Schedule',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: ThemeProvider.getSecondaryTextColor(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(7, (index) {
+            final isScheduled = routine.weeklySchedule.contains(index);
+            return Container(
+              width: 24,
+              height: 24,
+              margin: const EdgeInsets.only(right: 6),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color:
+                    isScheduled ? const Color(0xFF34C759) : Colors.transparent,
+                border: Border.all(
+                  color:
+                      isScheduled
+                          ? const Color(0xFF34C759)
+                          : ThemeProvider.getSecondaryTextColor(
+                            context,
+                          ).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  dayLabels[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isScheduled
+                            ? Colors.white
+                            : ThemeProvider.getSecondaryTextColor(context),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildIconActionButton(
+    BuildContext context,
+    IconData icon,
+    Color color,
+    String tooltip,
+    VoidCallback onPressed,
+  ) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        height: 44,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
+        ),
+        child: Center(child: Icon(icon, size: 20, color: color)),
+      ),
+    );
+  }
+
+  void _showDeleteRoutineDialog(BuildContext context, ScheduleItem routine) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: ThemeProvider.getCardColor(context),
+            title: Text(
+              'Delete Routine',
+              style: TextStyle(color: ThemeProvider.getTextColor(context)),
+            ),
+            content: Text(
+              'Are you sure you want to delete "${routine.title}"? This action cannot be undone.',
+              style: TextStyle(
+                color: ThemeProvider.getSecondaryTextColor(context),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onScheduleDeleted(routine);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Routine "${routine.title}" deleted'),
+                      backgroundColor: const Color(0xFFFF3B30),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Color(0xFFFF3B30)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // Create Routine Bottom Sheet
+  void _showCreateRoutineBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => _CreateRoutineBottomSheet(
+            onRoutineCreated: (routine) {
+              widget.onScheduleAdded(routine);
+              Navigator.pop(context);
+            },
+          ),
+    );
+  }
+
   // Helper methods
   String _calculateDuration(String startTime, String endTime) {
     final startParts = startTime.split(':');
@@ -1493,98 +2270,93 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         return 'ROUTINE';
     }
   }
-
   void _showApiSettingsBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            decoration: BoxDecoration(
-              color: ThemeProvider.getCardColor(context),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: ThemeProvider.getCardColor(context),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: ThemeProvider.getSecondaryTextColor(context),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.getSecondaryTextColor(context),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-                // Header with back button and title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showSettingsBottomSheet(context);
-                        },
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: ThemeProvider.getSecondaryTextColor(
-                              context,
-                            ).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 18,
-                            color: ThemeProvider.getSecondaryTextColor(context),
-                          ),
-                        ),
+            // Header with back button and title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'API Settings',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: ThemeProvider.getTextColor(context),
-                          ),
-                        ),
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 16,
+                        color: ThemeProvider.getSecondaryTextColor(context),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24), // API Key Management
-                _buildApiKeyOption(
-                  context: context,
-                  icon: Icons.vpn_key_outlined,
-                  title: 'Manage API Keys',
-                  subtitle: 'Add, edit, and select your API keys (up to 5)',
-                  onTap: () => _showApiKeyManagementBottomSheet(context),
-                ),
-
-                // AI Model Selection
-                _buildApiKeyOption(
-                  context: context,
-                  icon: Icons.psychology_outlined,
-                  title: 'AI Model Settings',
-                  subtitle: 'Choose AI models for different tasks',
-                  onTap: () => _showAiModelSelectionBottomSheet(context),
-                ),
-
-                const SizedBox(height: 40),
-              ],
+                  const Spacer(),
+                  Text(
+                    'API Settings',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const Spacer(),
+                  const SizedBox(width: 32), // Balance the back button
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+
+            // API Key Management
+            _buildApiKeyOption(
+              context: context,
+              icon: Icons.vpn_key_outlined,
+              title: 'Manage API Keys',
+              subtitle: 'Add, edit, and select your API keys (up to 5)',
+              onTap: () => _showApiKeyManagementBottomSheet(context),
+            ),
+
+            // AI Model Selection
+            _buildApiKeyOption(
+              context: context,
+              icon: Icons.psychology_outlined,
+              title: 'AI Model Settings',
+              subtitle: 'Choose AI models for different tasks',
+              onTap: () => _showAiModelSelectionBottomSheet(context),
+            ),
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1627,7 +2399,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: ThemeProvider.getSecondaryTextColor(context),
                     ),
                   ),
@@ -1650,191 +2422,155 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            decoration: BoxDecoration(
-              color: ThemeProvider.getCardColor(context),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: ThemeProvider.getCardColor(context),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: ThemeProvider.getSecondaryTextColor(context),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.getSecondaryTextColor(context),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-                // Header with back button and title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showApiSettingsBottomSheet(context);
-                        },
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: ThemeProvider.getSecondaryTextColor(
-                              context,
-                            ).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 18,
-                            color: ThemeProvider.getSecondaryTextColor(context),
-                          ),
-                        ),
+            // Header with back button and title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Manage API Keys',
+                      child: Icon(
+                        Icons.arrow_back_ios_new,
+                        size: 16,
+                        color: ThemeProvider.getSecondaryTextColor(context),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    'API Keys',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _showAddApiKeyDialog(context),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF007AFF).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Color(0xFF007AFF),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // API Keys List
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // Example API Keys (you can load these from shared preferences)
+                  _buildApiKeyCard(
+                    context: context,
+                    name: 'OpenAI GPT-4',
+                    provider: 'OpenAI',
+                    isActive: true,
+                    onTap: () {
+                      // Set as active key
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('API Key activated'),
+                          backgroundColor: Color(0xFF34C759),
+                        ),
+                      );
+                    },
+                    onEdit: () => _showEditApiKeyDialog(context, 'OpenAI GPT-4'),
+                    onDelete: () => _showDeleteConfirmation(context, 'OpenAI GPT-4'),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Empty state when no keys
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.vpn_key_outlined,
+                          size: 48,
+                          color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No API Keys Added',
                           style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                             color: ThemeProvider.getTextColor(context),
                           ),
                         ),
-                      ),
-                      // Add new API key button
-                      GestureDetector(
-                        onTap: () => _showAddApiKeyDialog(context),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF007AFF).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            size: 20,
-                            color: Color(0xFF007AFF),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add your first API key to get started',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: ThemeProvider.getSecondaryTextColor(context),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // API Keys List
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      // Current Active API Key Section
-                      Text(
-                        'Active API Key',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: ThemeProvider.getTextColor(context),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => _showAddApiKeyDialog(context),
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add API Key'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007AFF),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      _buildApiKeyCard(
-                        context: context,
-                        name: 'My Primary Key',
-                        provider: 'Gemini',
-                        isActive: true,
-                        onTap: () {},
-                        onEdit:
-                            () => _showEditApiKeyDialog(
-                              context,
-                              'My Primary Key',
-                            ),
-                        onDelete:
-                            () => _showDeleteConfirmation(
-                              context,
-                              'My Primary Key',
-                            ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Saved API Keys Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Saved API Keys (1/5)',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: ThemeProvider.getTextColor(context),
-                            ),
-                          ),
-                          Text(
-                            'Tap to select',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: ThemeProvider.getSecondaryTextColor(
-                                context,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Sample inactive API keys
-                      _buildApiKeyCard(
-                        context: context,
-                        name: 'Development Key',
-                        provider: 'Gemini',
-                        isActive: false,
-                        onTap: () {},
-                        onEdit:
-                            () => _showEditApiKeyDialog(
-                              context,
-                              'Development Key',
-                            ),
-                        onDelete:
-                            () => _showDeleteConfirmation(
-                              context,
-                              'Development Key',
-                            ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      _buildApiKeyCard(
-                        context: context,
-                        name: 'Testing Key',
-                        provider: 'Gemini',
-                        isActive: false,
-                        onTap: () {},
-                        onEdit:
-                            () => _showEditApiKeyDialog(context, 'Testing Key'),
-                        onDelete:
-                            () =>
-                                _showDeleteConfirmation(context, 'Testing Key'),
-                      ),
-
-                      const SizedBox(height: 40),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1852,18 +2588,14 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color:
-              isActive
-                  ? const Color(0xFF007AFF).withOpacity(0.1)
-                  : ThemeProvider.getCardColor(context),
+          color: isActive
+              ? const Color(0xFF007AFF).withOpacity(0.1)
+              : ThemeProvider.getCardColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color:
-                isActive
-                    ? const Color(0xFF007AFF).withOpacity(0.3)
-                    : ThemeProvider.getSecondaryTextColor(
-                      context,
-                    ).withOpacity(0.2),
+            color: isActive
+                ? const Color(0xFF007AFF).withOpacity(0.2)
+                : ThemeProvider.getSecondaryTextColor(context).withOpacity(0.2),
             width: 1,
           ),
         ),
@@ -1874,13 +2606,13 @@ class _ScheduleSectionState extends State<ScheduleSection> {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: const Color(0xFF34C759).withOpacity(0.1),
+                color: const Color(0xFF007AFF).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
-                Icons.auto_awesome,
+                Icons.api,
                 size: 20,
-                color: Color(0xFF34C759),
+                color: Color(0xFF007AFF),
               ),
             ),
             const SizedBox(width: 12),
@@ -1890,44 +2622,19 @@ class _ScheduleSectionState extends State<ScheduleSection> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: ThemeProvider.getTextColor(context),
-                        ),
-                      ),
-                      if (isActive) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF34C759),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Text(
-                            'ACTIVE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$provider • ••••••••••••••••',
+                    provider,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: ThemeProvider.getSecondaryTextColor(context),
                     ),
                   ),
@@ -1937,18 +2644,31 @@ class _ScheduleSectionState extends State<ScheduleSection> {
 
             // Action Buttons
             Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
+                if (isActive)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF34C759),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Active',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: onEdit,
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: ThemeProvider.getSecondaryTextColor(
-                        context,
-                      ).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
                       Icons.edit_outlined,
@@ -1961,11 +2681,10 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                 GestureDetector(
                   onTap: onDelete,
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFF3B30).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.delete_outline,
@@ -1987,156 +2706,133 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => DraggableScrollableSheet(
-            initialChildSize: 0.7,
-            minChildSize: 0.5,
-            maxChildSize: 0.9,
-            expand: false,
-            builder:
-                (context, scrollController) => Container(
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.getCardColor(context),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      // Handle bar
-                      Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.getSecondaryTextColor(context),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Header with back button and title
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                                _showApiSettingsBottomSheet(context);
-                              },
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: ThemeProvider.getSecondaryTextColor(
-                                    context,
-                                  ).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Icon(
-                                  Icons.arrow_back_ios_new,
-                                  size: 18,
-                                  color: ThemeProvider.getSecondaryTextColor(
-                                    context,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(
-                                'AI Model Settings',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: ThemeProvider.getTextColor(context),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Model Selection Options
-                      Expanded(
-                        child: ListView(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: [
-                            Text(
-                              'Choose AI models for different types of tasks',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: ThemeProvider.getSecondaryTextColor(
-                                  context,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Complex Tasks
-                            _buildModelSelectionCard(
-                              context: context,
-                              title: 'Complex Tasks',
-                              description:
-                                  'Advanced reasoning, code generation, detailed analysis',
-                              currentModel: 'Gemini Pro 1.5',
-                              icon: Icons.psychology_outlined,
-                              color: const Color(0xFF5856D6),
-                              onTap:
-                                  () => _showModelSelectionDialog(
-                                    context,
-                                    'Complex Tasks',
-                                  ),
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Quick Tasks
-                            _buildModelSelectionCard(
-                              context: context,
-                              title: 'Quick Tasks',
-                              description:
-                                  'Fast responses, simple queries, quick assistance',
-                              currentModel: 'Gemini Flash',
-                              icon: Icons.flash_on_outlined,
-                              color: const Color(0xFFFF9500),
-                              onTap:
-                                  () => _showModelSelectionDialog(
-                                    context,
-                                    'Quick Tasks',
-                                  ),
-                            ),
-
-                            const SizedBox(height: 16),
-
-                            // Intelligence for Everyday Tasks
-                            _buildModelSelectionCard(
-                              context: context,
-                              title: 'Intelligence for Everyday Tasks',
-                              description:
-                                  'Daily reminders, habit tracking, routine optimization',
-                              currentModel: 'Gemini Pro',
-                              icon: Icons.auto_awesome_outlined,
-                              color: const Color(0xFF34C759),
-                              onTap:
-                                  () => _showModelSelectionDialog(
-                                    context,
-                                    'Intelligence for Everyday Tasks',
-                                  ),
-                            ),
-
-                            const SizedBox(height: 40),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          decoration: BoxDecoration(
+            color: ThemeProvider.getCardColor(context),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
           ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ThemeProvider.getSecondaryTextColor(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: 16,
+                          color: ThemeProvider.getSecondaryTextColor(context),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'AI Models',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: ThemeProvider.getTextColor(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 32),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Model Selection Cards
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  children: [
+                    _buildModelSelectionCard(
+                      context: context,
+                      title: 'Text Generation',
+                      description: 'For creating routine descriptions and suggestions',
+                      currentModel: 'GPT-4',
+                      icon: Icons.text_fields_outlined,
+                      color: const Color(0xFF007AFF),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Model selection coming soon!'),
+                            backgroundColor: Color(0xFF007AFF),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildModelSelectionCard(
+                      context: context,
+                      title: 'Schedule Optimization',
+                      description: 'For optimizing your daily schedule',
+                      currentModel: 'GPT-4',
+                      icon: Icons.auto_awesome_outlined,
+                      color: const Color(0xFF34C759),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Model selection coming soon!'),
+                            backgroundColor: Color(0xFF34C759),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildModelSelectionCard(
+                      context: context,
+                      title: 'Habit Analysis',
+                      description: 'For analyzing and improving your habits',
+                      currentModel: 'GPT-4',
+                      icon: Icons.psychology_outlined,
+                      color: const Color(0xFF5856D6),
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Model selection coming soon!'),
+                            backgroundColor: Color(0xFF5856D6),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -2161,11 +2857,11 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(22),
               ),
               child: Icon(icon, size: 24, color: color),
             ),
@@ -2186,22 +2882,19 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                   Text(
                     description,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: ThemeProvider.getSecondaryTextColor(context),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      currentModel,
+                      'Current: $currentModel',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -2228,250 +2921,219 @@ class _ScheduleSectionState extends State<ScheduleSection> {
     final TextEditingController apiKeyController = TextEditingController();
     bool isLoading = false;
     bool obscureText = true;
+    String selectedProvider = 'OpenAI';
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setState) => Container(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.getCardColor(context),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          decoration: BoxDecoration(
+            color: ThemeProvider.getCardColor(context),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ThemeProvider.getSecondaryTextColor(context),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: ThemeProvider.getSecondaryTextColor(context),
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Handle bar
-                        Center(
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: ThemeProvider.getSecondaryTextColor(
-                                context,
-                              ),
-                              borderRadius: BorderRadius.circular(2),
+                    const Spacer(),
+                    Text(
+                      'Add API Key',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: ThemeProvider.getTextColor(context),
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: isLoading ? null : () {
+                        if (nameController.text.trim().isEmpty ||
+                            apiKeyController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill in all fields'),
+                              backgroundColor: Color(0xFFFF3B30),
                             ),
-                          ),
+                          );
+                          return;
+                        }
+                        
+                        setState(() => isLoading = true);
+                        
+                        // TODO: Save API key to shared preferences
+                        Future.delayed(const Duration(seconds: 1), () {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('API Key saved successfully!'),
+                              backgroundColor: Color(0xFF34C759),
+                            ),
+                          );
+                        });
+                      },
+                      child: Text(
+                        isLoading ? 'Saving...' : 'Save',
+                        style: TextStyle(
+                          color: isLoading ? 
+                            ThemeProvider.getSecondaryTextColor(context) : 
+                            const Color(0xFF007AFF),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
 
-                        // Title
-                        Text(
-                          'Add New API Key',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: ThemeProvider.getTextColor(context),
-                          ),
+              // Form
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Provider selection
+                    Text(
+                      'Provider',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeProvider.getTextColor(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedProvider,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        items: ['OpenAI', 'Anthropic', 'Google', 'Custom'].map((provider) {
+                          return DropdownMenuItem(
+                            value: provider,
+                            child: Text(provider),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => selectedProvider = value);
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Name field
+                    Text(
+                      'Display Name',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeProvider.getTextColor(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: 'e.g., My OpenAI Key',
+                        filled: true,
+                        fillColor: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
-                        const SizedBox(height: 8),
+                        contentPadding: const EdgeInsets.all(16),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
 
-                        // Description
-                        Text(
-                          'Give your API key a name and enter the key value.',
-                          style: TextStyle(
-                            fontSize: 14,
+                    // API Key field
+                    Text(
+                      'API Key',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: ThemeProvider.getTextColor(context),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: apiKeyController,
+                      obscureText: obscureText,
+                      decoration: InputDecoration(
+                        hintText: 'Paste your API key here',
+                        filled: true,
+                        fillColor: ThemeProvider.getSecondaryTextColor(context).withOpacity(0.1),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.all(16),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => obscureText = !obscureText),
+                          icon: Icon(
+                            obscureText ? Icons.visibility : Icons.visibility_off,
                             color: ThemeProvider.getSecondaryTextColor(context),
                           ),
                         ),
-                        const SizedBox(height: 20),
-
-                        // Name Input Field
-                        TextField(
-                          controller: nameController,
-                          decoration: InputDecoration(
-                            labelText: 'Key Name',
-                            hintText: 'e.g., My Production Key',
-                            prefixIcon: const Icon(Icons.label_outline),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: ThemeProvider.getCardColor(context),
-                          ),
-                          style: TextStyle(
-                            color: ThemeProvider.getTextColor(context),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // API Key Input Field
-                        TextField(
-                          controller: apiKeyController,
-                          obscureText: obscureText,
-                          decoration: InputDecoration(
-                            labelText: 'Gemini API Key',
-                            hintText: 'Enter your Gemini API key',
-                            prefixIcon: const Icon(Icons.vpn_key_outlined),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                obscureText
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  obscureText = !obscureText;
-                                });
-                              },
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: ThemeProvider.getCardColor(context),
-                          ),
-                          style: TextStyle(
-                            color: ThemeProvider.getTextColor(context),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Action Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextButton(
-                                onPressed:
-                                    isLoading
-                                        ? null
-                                        : () {
-                                          Navigator.pop(context);
-                                        },
-                                child: Text(
-                                  'Cancel',
-                                  style: TextStyle(
-                                    color: ThemeProvider.getSecondaryTextColor(
-                                      context,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed:
-                                    isLoading
-                                        ? null
-                                        : () async {
-                                          if (nameController.text.isEmpty ||
-                                              apiKeyController.text.isEmpty) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Please fill in all fields',
-                                                ),
-                                                backgroundColor: Color(
-                                                  0xFFFF3B30,
-                                                ),
-                                              ),
-                                            );
-                                            return;
-                                          }
-
-                                          setState(() {
-                                            isLoading = true;
-                                          });
-
-                                          try {
-                                            // TODO: Save API key with name
-                                            await Future.delayed(
-                                              const Duration(milliseconds: 500),
-                                            ); // Simulate save
-                                            if (context.mounted) {
-                                              Navigator.pop(context);
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'API key saved successfully!',
-                                                  ),
-                                                  backgroundColor: Color(
-                                                    0xFF34C759,
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          } catch (e) {
-                                            if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Error saving API key: $e',
-                                                  ),
-                                                  backgroundColor: const Color(
-                                                    0xFFFF3B30,
-                                                  ),
-                                                ),
-                                              );
-                                            }
-                                          } finally {
-                                            if (mounted) {
-                                              setState(() {
-                                                isLoading = false;
-                                              });
-                                            }
-                                          }
-                                        },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF007AFF),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child:
-                                    isLoading
-                                        ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  Colors.white,
-                                                ),
-                                          ),
-                                        )
-                                        : const Text('Save'),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
   void _showEditApiKeyDialog(BuildContext context, String keyName) {
-    // TODO: Implement edit API key dialog
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Edit $keyName - Coming soon!'),
-        backgroundColor: const Color(0xFF007AFF),
+      const SnackBar(
+        content: Text('Edit API Key feature coming soon!'),
+        backgroundColor: Color(0xFF007AFF),
       ),
     );
   }
@@ -2479,261 +3141,46 @@ class _ScheduleSectionState extends State<ScheduleSection> {
   void _showDeleteConfirmation(BuildContext context, String keyName) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: ThemeProvider.getCardColor(context),
-            title: Text(
-              'Delete API Key',
-              style: TextStyle(color: ThemeProvider.getTextColor(context)),
-            ),
-            content: Text(
-              'Are you sure you want to delete "$keyName"? This action cannot be undone.',
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeProvider.getCardColor(context),
+        title: Text(
+          'Delete API Key',
+          style: TextStyle(color: ThemeProvider.getTextColor(context)),
+        ),
+        content: Text(
+          'Are you sure you want to delete "$keyName"? This action cannot be undone.',
+          style: TextStyle(
+            color: ThemeProvider.getSecondaryTextColor(context),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
               style: TextStyle(
                 color: ThemeProvider.getSecondaryTextColor(context),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: ThemeProvider.getSecondaryTextColor(context),
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('$keyName deleted'),
-                      backgroundColor: const Color(0xFFFF3B30),
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Color(0xFFFF3B30)),
-                ),
-              ),
-            ],
           ),
-    );
-  }
-
-  String _getModelDescription(String model, String taskType) {
-    // Task-specific descriptions (4-5 words each)
-    switch (taskType) {
-      case 'Complex Tasks':
-        switch (model) {
-          case 'Gemini Pro 1.5':
-            return 'Advanced reasoning and analysis';
-          case 'Gemini Pro':
-            return 'Comprehensive problem solving power';
-          case 'Gemini Flash':
-            return 'Quick complex task handling';
-          case 'Gemini Flash 8B':
-            return 'Efficient lightweight complex processing';
-          default:
-            return 'Advanced AI capabilities';
-        }
-      case 'Quick Tasks':
-        switch (model) {
-          case 'Gemini Pro 1.5':
-            return 'Thorough but slower responses';
-          case 'Gemini Pro':
-            return 'Balanced speed and accuracy';
-          case 'Gemini Flash':
-            return 'Lightning fast quick responses';
-          case 'Gemini Flash 8B':
-            return 'Ultra rapid lightweight responses';
-          default:
-            return 'Fast response capabilities';
-        }
-      case 'Intelligence for Everyday Tasks':
-        switch (model) {
-          case 'Gemini Pro 1.5':
-            return 'Detailed habit optimization insights';
-          case 'Gemini Pro':
-            return 'Smart daily routine management';
-          case 'Gemini Flash':
-            return 'Quick daily task assistance';
-          case 'Gemini Flash 8B':
-            return 'Simple everyday task helper';
-          default:
-            return 'Daily intelligence assistance';
-        }
-      default:
-        return 'AI model capabilities';
-    }
-  }
-
-  void _showModelSelectionDialog(BuildContext context, String taskType) {
-    final models = [
-      'Gemini Pro 1.5',
-      'Gemini Pro',
-      'Gemini Flash',
-      'Gemini Flash 8B',
-    ];
-
-    String selectedModel =
-        taskType == 'Complex Tasks'
-            ? 'Gemini Pro 1.5'
-            : taskType == 'Quick Tasks'
-            ? 'Gemini Flash'
-            : 'Gemini Pro';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => StatefulBuilder(
-            builder:
-                (context, setState) => Container(
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.getCardColor(context),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Handle bar
-                      Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.getSecondaryTextColor(context),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Title
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(
-                          'Select Model for $taskType',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: ThemeProvider.getTextColor(context),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20), // Model Options
-                      ...models.map(
-                        (model) => Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                selectedModel == model
-                                    ? const Color(0xFF007AFF).withOpacity(0.1)
-                                    : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color:
-                                  selectedModel == model
-                                      ? const Color(0xFF007AFF).withOpacity(0.3)
-                                      : ThemeProvider.getSecondaryTextColor(
-                                        context,
-                                      ).withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              model,
-                              style: TextStyle(
-                                color: ThemeProvider.getTextColor(context),
-                                fontWeight:
-                                    selectedModel == model
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                              ),
-                            ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                _getModelDescription(model, taskType),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: ThemeProvider.getSecondaryTextColor(
-                                    context,
-                                  ),
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                            ),
-                            trailing: Radio<String>(
-                              value: model,
-                              groupValue: selectedModel,
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedModel = value!;
-                                });
-                              },
-                              activeColor: const Color(0xFF007AFF),
-                            ),
-                            onTap: () {
-                              setState(() {
-                                selectedModel = model;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-
-                      // Save Button
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '$selectedModel selected for $taskType',
-                                  ),
-                                  backgroundColor: const Color(0xFF34C759),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF007AFF),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Save Selection'),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('API Key "$keyName" deleted'),
+                  backgroundColor: const Color(0xFFFF3B30),
                 ),
+              );
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Color(0xFFFF3B30)),
+            ),
           ),
+        ],
+      ),
     );
-  }
-
-  Future<void> _saveApiKey(String apiType, String apiKey) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('api_key_$apiType', apiKey);
-  }
-
-  Future<String> _loadApiKey(String apiType) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('api_key_$apiType') ?? '';
   }
 }
 
@@ -2781,5 +3228,415 @@ class CircularPercentagePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
+  }
+}
+
+class _CreateRoutineBottomSheet extends StatefulWidget {
+  final Function(ScheduleItem) onRoutineCreated;
+
+  const _CreateRoutineBottomSheet({required this.onRoutineCreated});
+
+  @override
+  State<_CreateRoutineBottomSheet> createState() =>
+      _CreateRoutineBottomSheetState();
+}
+
+class _CreateRoutineBottomSheetState extends State<_CreateRoutineBottomSheet> {
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  TimeOfDay _startTime = TimeOfDay.now();
+  TimeOfDay _endTime = TimeOfDay.now().replacing(
+    hour: TimeOfDay.now().hour + 1,
+  );
+  Color _selectedColor = const Color(0xFF007AFF);
+  List<int> _selectedDays = [];
+  bool _isLoading = false;
+
+  final List<Color> _colorOptions = [
+    const Color(0xFF007AFF), // iOS blue
+    const Color(0xFF34C759), // iOS green
+    const Color(0xFFFF9500), // iOS orange
+    const Color(0xFFFF3B30), // iOS red
+    const Color(0xFF5856D6), // iOS purple
+    const Color(0xFFFF2D92), // iOS pink
+    const Color(0xFF8E8E93), // iOS gray
+  ];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder:
+          (context, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8E8E93),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: Color(0xFF8E8E93),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'New Routine',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1C1C1E),
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _isLoading ? null : _saveRoutine,
+                        child: Text(
+                          'Save',
+                          style: TextStyle(
+                            color:
+                                _isLoading
+                                    ? const Color(0xFF8E8E93)
+                                    : const Color(0xFF007AFF),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Scrollable content
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      // Title section
+                      _buildSectionTitle('Title'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _titleController,
+                        hintText: 'Enter routine title',
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Description section
+                      _buildSectionTitle('Description'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _descriptionController,
+                        hintText: 'Enter routine description',
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Time section
+                      _buildSectionTitle('Time'),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTimeSelector(
+                              label: 'Start Time',
+                              time: _startTime,
+                              onTimeChanged:
+                                  (time) => setState(() => _startTime = time),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTimeSelector(
+                              label: 'End Time',
+                              time: _endTime,
+                              onTimeChanged:
+                                  (time) => setState(() => _endTime = time),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Color section
+                      _buildSectionTitle('Color'),
+                      const SizedBox(height: 12),
+                      _buildColorSelector(),
+                      const SizedBox(height: 24),
+
+                      // Days section
+                      _buildSectionTitle('Days'),
+                      const SizedBox(height: 12),
+                      _buildDaySelector(),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Color(0xFF1C1C1E),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required int maxLines,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F7),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Color(0xFF8E8E93), fontSize: 16),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.all(16),
+        ),
+        style: const TextStyle(fontSize: 16, color: Color(0xFF1C1C1E)),
+      ),
+    );
+  }
+
+  Widget _buildTimeSelector({
+    required String label,
+    required TimeOfDay time,
+    required Function(TimeOfDay) onTimeChanged,
+  }) {
+    return GestureDetector(
+      onTap: () async {
+        final selectedTime = await showTimePicker(
+          context: context,
+          initialTime: time,
+        );
+        if (selectedTime != null) {
+          onTimeChanged(selectedTime);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF2F2F7),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF8E8E93),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              time.format(context),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1C1C1E),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorSelector() {
+    return SizedBox(
+      height: 50,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _colorOptions.length,
+        itemBuilder: (context, index) {
+          final color = _colorOptions[index];
+          final isSelected = _selectedColor == color;
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedColor = color),
+            child: Container(
+              width: 50,
+              height: 50,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border:
+                    isSelected
+                        ? Border.all(color: Colors.white, width: 3)
+                        : null,
+                boxShadow:
+                    isSelected
+                        ? [
+                          BoxShadow(
+                            color: color.withOpacity(0.5),
+                            spreadRadius: 0,
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                        : null,
+              ),
+              child:
+                  isSelected
+                      ? const Icon(Icons.check, color: Colors.white, size: 24)
+                      : null,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDaySelector() {
+    final dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(7, (index) {
+        final isSelected = _selectedDays.contains(index);
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (isSelected) {
+                _selectedDays.remove(index);
+              } else {
+                _selectedDays.add(index);
+              }
+            });
+          },
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color:
+                  isSelected
+                      ? const Color(0xFF007AFF)
+                      : const Color(0xFFF2F2F7),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                dayLabels[index],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF8E8E93),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Future<void> _saveRoutine() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a routine title'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
+      );
+      return;
+    }
+
+    if (_selectedDays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select at least one day'),
+          backgroundColor: Color(0xFFFF3B30),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final routine = ScheduleItem(
+        _titleController.text.trim(),
+        '${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}',
+        '${_endTime.hour.toString().padLeft(2, '0')}:${_endTime.minute.toString().padLeft(2, '0')}',
+        _selectedColor,
+        _descriptionController.text.trim(),
+        ScheduleType.routine,
+        false,
+        _selectedDays,
+        0,
+        CardDisplayState.compact,
+        null,
+        DateTime.now(),
+      );
+
+      widget.onRoutineCreated(routine);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating routine: $e'),
+          backgroundColor: const Color(0xFFFF3B30),
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 }
