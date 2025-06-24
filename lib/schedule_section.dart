@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'theme_provider.dart';
 
 enum ScheduleType {
   routine, // Recurring activities (daily, weekly, etc.)
@@ -39,12 +40,14 @@ class ScheduleItem {
 class ScheduleSection extends StatefulWidget {
   final DateTime selectedDay;
   final List<ScheduleItem> routines;
+  final ThemeProvider themeProvider;
   final Function(ScheduleItem) onScheduleUpdated;
 
   const ScheduleSection({
     super.key,
     required this.selectedDay,
     required this.routines,
+    required this.themeProvider,
     required this.onScheduleUpdated,
   });
 
@@ -672,30 +675,43 @@ class _ScheduleSectionState extends State<ScheduleSection> {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildActionChip(
-                icon: Icons.settings_outlined,
-                label: 'Settings',
-                color: const Color(0xFF8E8E93), // iOS gray
-              ),
-              _buildActionChip(
-                icon: Icons.person_outline,
-                label: 'Profile',
-                color: const Color(0xFF007AFF), // iOS blue
-              ),
-              _buildActionChip(
-                icon: Icons.repeat,
-                label: 'Routine',
-                color: const Color(0xFF34C759), // iOS green
-              ),
-              _buildActionChip(
-                icon: Icons.tune_outlined,
-                label: 'Customize',
-                color: const Color(0xFF5856D6), // iOS purple
-              ),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildActionChip(
+                  icon: Icons.settings_outlined,
+                  label: 'Settings',
+                  color: const Color(0xFF8E8E93), // iOS gray
+                  onTap: () => _showSettingsBottomSheet(context),
+                ),
+                const SizedBox(width: 8),
+                _buildActionChip(
+                  icon: Icons.person_outline,
+                  label: 'Profile',
+                  color: const Color(0xFF007AFF), // iOS blue
+                ),
+                const SizedBox(width: 8),
+                _buildActionChip(
+                  icon: Icons.repeat,
+                  label: 'Routine',
+                  color: const Color(0xFF34C759), // iOS green
+                ),
+                const SizedBox(width: 8),
+                _buildActionChip(
+                  icon: Icons.tune_outlined,
+                  label: 'Customize',
+                  color: const Color(0xFF5856D6), // iOS purple
+                ),
+                const SizedBox(width: 8),
+                _buildActionChip(
+                  icon: Icons.info_outline,
+                  label: 'About Us',
+                  color: const Color(0xFFFF9500), // iOS orange
+                  onTap: () => _showAboutUsDialog(context),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -706,32 +722,713 @@ class _ScheduleSectionState extends State<ScheduleSection> {
     required IconData icon,
     required String label,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Expanded(
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: color.withOpacity(0.3), width: 1),
         ),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 6),
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: color,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.9,
+            expand: false,
+            builder:
+                (context, scrollController) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFD1D1D6), // iOS gray
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Title
+                      Text(
+                        'Settings',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1C1C1E), // iOS dark text
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Scrollable content
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          children: [
+                            // Settings options
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.palette_outlined,
+                              title: 'Theme Setting',
+                              subtitle: 'Customize app appearance',
+                              onTap: () {
+                                Navigator.pop(context);
+                                _showThemeSettingsBottomSheet(context);
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.notifications_outlined,
+                              title: 'Notifications',
+                              subtitle: 'Manage alerts and reminders',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to notification settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Notification Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.schedule_outlined,
+                              title: 'Default Times',
+                              subtitle: 'Set default routine durations',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to default times settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Default Times Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.sync_outlined,
+                              title: 'Sync & Backup',
+                              subtitle: 'Cloud sync and data backup',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to sync settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Sync & Backup Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.api_outlined,
+                              title: 'Integrations',
+                              subtitle: 'Connect with external apps',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to API settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Integration Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.access_time_outlined,
+                              title: 'Time Zone',
+                              subtitle: 'Configure time zone settings',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to timezone settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Time Zone Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.security_outlined,
+                              title: 'Privacy & Security',
+                              subtitle: 'App lock and privacy settings',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to privacy settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Privacy & Security Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            _buildSettingsOption(
+                              context: context,
+                              icon: Icons.storage_outlined,
+                              title: 'Storage',
+                              subtitle: 'Manage app data and cache',
+                              onTap: () {
+                                Navigator.pop(context);
+                                // TODO: Navigate to storage settings
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Storage Settings coming soon!',
+                                    ),
+                                    backgroundColor: Color(0xFF007AFF),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  Widget _buildSettingsOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF007AFF), size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1C1C1E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF8E8E93),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFD1D1D6), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showThemeSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: ThemeProvider.getCardColor(context),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header with back button and title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSettingsBottomSheet(context);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: ThemeProvider.getSecondaryTextColor(
+                              context,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 18,
+                            color: ThemeProvider.getSecondaryTextColor(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Theme Settings',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24), // Light theme option
+                _buildThemeOption(
+                  context: context,
+                  icon: Icons.light_mode_outlined,
+                  title: 'Light Mode',
+                  subtitle: 'Clean and bright interface',
+                  isSelected: !widget.themeProvider.isDarkMode,
+                  onTap: () {
+                    if (widget.themeProvider.isDarkMode) {
+                      widget.themeProvider.toggleTheme();
+                      // Add a small delay to show the theme change
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      });
+                    }
+                  },
+                ),
+
+                // Dark theme option
+                _buildThemeOption(
+                  context: context,
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Dark Mode',
+                  subtitle: 'Easier on the eyes in low light',
+                  isSelected: widget.themeProvider.isDarkMode,
+                  onTap: () {
+                    if (!widget.themeProvider.isDarkMode) {
+                      widget.themeProvider
+                          .toggleTheme(); // Add a small delay to show the theme change
+                      Future.delayed(const Duration(milliseconds: 300), () {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
+                      });
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? const Color(0xFF007AFF).withOpacity(0.1)
+                        : ThemeProvider.getSecondaryTextColor(
+                          context,
+                        ).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color:
+                    isSelected
+                        ? const Color(0xFF007AFF)
+                        : ThemeProvider.getSecondaryTextColor(context),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Color(0xFF007AFF), size: 20)
+            else
+              Icon(
+                Icons.radio_button_unchecked,
+                color: ThemeProvider.getSecondaryTextColor(context),
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAboutUsDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.8,
+            expand: false,
+            builder:
+                (context, scrollController) => Container(
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getCardColor(context),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.getSecondaryTextColor(context),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Scrollable content
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          children: [
+                            // App icon or logo placeholder
+                            Center(
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF007AFF,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.schedule,
+                                  size: 40,
+                                  color: Color(0xFF007AFF),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // App name
+                            Center(
+                              child: Text(
+                                'ScheduleMe',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: ThemeProvider.getTextColor(context),
+                                ),
+                              ),                            ),
+                            const SizedBox(height: 8),
+
+                            // Version
+                            Center(
+                              child: Text(
+                                'Version 1.7.0',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: ThemeProvider.getSecondaryTextColor(
+                                    context,
+                                  ),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // About section
+                            Text(
+                              'About',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: ThemeProvider.getTextColor(context),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Description
+                            Text(
+                              'ScheduleMe is a beautiful and intuitive scheduling app designed to help you manage your daily routines and stay organized. Built with modern iOS design principles, it offers a seamless experience for tracking your habits, managing your time, and achieving your goals.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: ThemeProvider.getTextColor(context),
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Features section
+                            Text(
+                              'Features',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: ThemeProvider.getTextColor(context),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            _buildFeatureItem(
+                              context,
+                              Icons.repeat,
+                              'Smart Routines',
+                              'Create and manage recurring activities with flexible scheduling',
+                            ),
+                            _buildFeatureItem(
+                              context,
+                              Icons.palette_outlined,
+                              'Beautiful Themes',
+                              'Switch between light and dark modes with iOS-style design',
+                            ),
+                            _buildFeatureItem(
+                              context,
+                              Icons.analytics_outlined,
+                              'Progress Tracking',
+                              'Monitor your habit completion and track your progress',
+                            ),
+                            _buildFeatureItem(
+                              context,
+                              Icons.notifications_outlined,
+                              'Smart Reminders',
+                              'Never miss your routines with intelligent notifications',
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Close button
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF007AFF),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  'Got it',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  Widget _buildFeatureItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String description,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF007AFF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 18, color: const Color(0xFF007AFF)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: ThemeProvider.getTextColor(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

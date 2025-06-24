@@ -1,52 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'schedule_section.dart';
+import 'theme_provider.dart';
 
 void main() {
   runApp(const ScheduleApp());
 }
 
-class ScheduleApp extends StatelessWidget {
+class ScheduleApp extends StatefulWidget {
   const ScheduleApp({super.key});
+
+  @override
+  State<ScheduleApp> createState() => _ScheduleAppState();
+}
+
+class _ScheduleAppState extends State<ScheduleApp> {
+  late ThemeProvider _themeProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeProvider = ThemeProvider();
+    _themeProvider.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _themeProvider.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Schedule Me',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light().copyWith(
-        colorScheme: const ColorScheme.light(
-          primary: Color(0xFF007AFF), // iOS blue
-          secondary: Color(0xFF5856D6), // iOS purple
-          surface: Color(0xFFF2F2F7), // iOS light gray
-          background: Color(0xFFFFFFFF), // Pure white
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: Color(0xFF1C1C1E), // iOS dark text
-          onBackground: Color(0xFF1C1C1E),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF2F2F7), // iOS background
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF2F2F7),
-          foregroundColor: Color(0xFF1C1C1E),
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: CardTheme(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        useMaterial3: true,
-      ),
-      home: const ScheduleHomePage(),
+      theme: ThemeProvider.lightTheme,
+      darkTheme: ThemeProvider.darkTheme,
+      themeMode: _themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      home: ScheduleHomePage(themeProvider: _themeProvider),
     );
   }
 }
 
 class ScheduleHomePage extends StatefulWidget {
-  const ScheduleHomePage({super.key});
+  final ThemeProvider themeProvider;
+
+  const ScheduleHomePage({super.key, required this.themeProvider});
 
   @override
   State<ScheduleHomePage> createState() => _ScheduleHomePageState();
@@ -266,8 +268,8 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schedule Me'),
-        backgroundColor: const Color(0xFFF2F2F7),
-        foregroundColor: const Color(0xFF1C1C1E),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: Theme.of(context).colorScheme.onBackground,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
@@ -277,7 +279,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
             // Weekly Calendar Section
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -299,23 +301,25 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                 calendarFormat: CalendarFormat.week,
                 eventLoader: _getSchedulesForDay,
                 startingDayOfWeek: StartingDayOfWeek.monday,
-                calendarStyle: const CalendarStyle(
+                calendarStyle: CalendarStyle(
                   outsideDaysVisible: false,
-                  selectedDecoration: BoxDecoration(
+                  selectedDecoration: const BoxDecoration(
                     color: Color(0xFF007AFF), // iOS blue
                     shape: BoxShape.circle,
                   ),
-                  todayDecoration: BoxDecoration(
+                  todayDecoration: const BoxDecoration(
                     color: Color(0xFFFF9500), // iOS orange
                     shape: BoxShape.circle,
                   ),
                   markersMaxCount: 0, // Hide event markers
                   defaultTextStyle: TextStyle(
-                    color: Color(0xFF1C1C1E), // iOS dark text
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                   weekendTextStyle: TextStyle(
-                    color: Color(0xFF8E8E93), // iOS gray
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -331,14 +335,18 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                   leftChevronVisible: false, // Hide left arrow
                   rightChevronVisible: false, // Hide right arrow
                 ),
-                daysOfWeekStyle: const DaysOfWeekStyle(
+                daysOfWeekStyle: DaysOfWeekStyle(
                   weekdayStyle: TextStyle(
-                    color: Color(0xFF8E8E93), // iOS gray
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                   weekendStyle: TextStyle(
-                    color: Color(0xFF8E8E93), // iOS gray
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -362,6 +370,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
               child: ScheduleSection(
                 selectedDay: _selectedDay,
                 routines: _routines,
+                themeProvider: widget.themeProvider,
                 onScheduleUpdated: (schedule) {
                   setState(() {
                     // Update the schedule item in the list
