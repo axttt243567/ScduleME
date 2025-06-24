@@ -8,6 +8,12 @@ enum ScheduleType {
   reminder, // Important reminders
 }
 
+enum CardDisplayState {
+  compact, // Title, time chip, duration chip only
+  medium, // + completion checkbox
+  full, // All features (current implementation)
+}
+
 void main() {
   runApp(const ScheduleApp());
 }
@@ -48,8 +54,9 @@ class ScheduleHomePage extends StatefulWidget {
 
 class _ScheduleHomePageState extends State<ScheduleHomePage> {
   DateTime _selectedDay = DateTime.now();
-  DateTime _focusedDay =
-      DateTime.now(); // Sample schedule data with different types
+  DateTime _focusedDay = DateTime.now();
+
+  // Sample schedule data with different types
   final Map<DateTime, List<ScheduleItem>> _schedules = {
     DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day): [
       ScheduleItem(
@@ -62,6 +69,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 2, 3, 4, 5], // Monday to Friday
         85, // 85% progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         'Team Standup',
@@ -73,6 +81,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 2, 3, 4, 5], // Monday to Friday
         92, // 92% progress
+        CardDisplayState.medium, // Individual card state
       ),
       ScheduleItem(
         'Code Review',
@@ -84,6 +93,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 3, 5], // Monday, Wednesday, Friday
         67, // 67% progress
+        CardDisplayState.full, // Individual card state
       ),
       ScheduleItem(
         'Call to Mom',
@@ -95,6 +105,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [0], // Sunday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
     DateTime(
@@ -112,6 +123,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 2, 3, 4, 5, 6, 0], // Daily
         78, // 78% progress
+        CardDisplayState.medium, // Individual card state
       ),
       ScheduleItem(
         'Project Planning',
@@ -123,6 +135,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [2], // Tuesday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         'Lunch Meeting',
@@ -134,6 +147,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [2], // Tuesday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         'Development',
@@ -145,6 +159,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 2, 3, 4, 5], // Weekdays
         43, // 43% progress
+        CardDisplayState.full, // Individual card state
       ),
     ],
     DateTime(
@@ -162,6 +177,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1, 2, 3, 4, 5, 6, 0], // Daily
         91, // 91% progress
+        CardDisplayState.full, // Individual card state
       ),
       ScheduleItem(
         'All Hands Meeting',
@@ -173,6 +189,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1], // Monday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         '1:1 with Manager',
@@ -184,6 +201,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1], // Monday only
         55, // 55% progress
+        CardDisplayState.medium, // Individual card state
       ),
       ScheduleItem(
         'Dentist Appointment',
@@ -195,6 +213,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1], // Monday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
     DateTime(
@@ -212,6 +231,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [6], // Saturday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         'Lunch with Friends',
@@ -223,6 +243,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [6], // Saturday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
     // Add some reminders for specific dates
@@ -237,6 +258,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [0], // Sunday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
     DateTime(2025, 6, 30): [
@@ -250,6 +272,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1], // Monday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
       ScheduleItem(
         'Monthly Budget Review',
@@ -261,6 +284,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [1], // Monday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
     DateTime(2025, 7, 1): [
@@ -274,6 +298,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         false,
         [2], // Tuesday only
         0, // Not a routine, no progress
+        CardDisplayState.compact, // Individual card state
       ),
     ],
   };
@@ -443,6 +468,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row - always shown
           Row(
             children: [
               _getTypeIcon(schedule.type),
@@ -455,141 +481,195 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                     decoration:
-                        schedule.isCompleted
+                        schedule.isCompleted &&
+                                schedule.cardDisplayState !=
+                                    CardDisplayState.compact
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
                     decorationColor: Colors.grey,
                   ),
                 ),
-              ), // Completion checkbox
-              GestureDetector(
+              ),
+              // Completion checkbox - only in medium and full states
+              if (schedule.cardDisplayState == CardDisplayState.medium ||
+                  schedule.cardDisplayState == CardDisplayState.full)
+                _buildCompletionCheckbox(schedule),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Chips row - always shown but different content based on state
+          _buildChipsRow(schedule), // Additional content based on state
+          if (schedule.cardDisplayState == CardDisplayState.full) ...[
+            const SizedBox(height: 12),
+            _buildWeeklyIndicator(schedule),
+            const SizedBox(height: 8),
+            // Separator line
+            Container(
+              height: 1,
+              color: schedule.color.withOpacity(0.3),
+              margin: const EdgeInsets.symmetric(vertical: 8),
+            ),
+            Text(
+              schedule.description,
+              style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+            ),
+          ],
+
+          // Dropdown toggle button - positioned at bottom right
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
                 onTap: () {
                   setState(() {
-                    schedule.isCompleted = !schedule.isCompleted;
+                    // Cycle through the states: compact -> medium -> full -> compact
+                    switch (schedule.cardDisplayState) {
+                      case CardDisplayState.compact:
+                        schedule.cardDisplayState = CardDisplayState.medium;
+                        break;
+                      case CardDisplayState.medium:
+                        schedule.cardDisplayState = CardDisplayState.full;
+                        break;
+                      case CardDisplayState.full:
+                        schedule.cardDisplayState = CardDisplayState.compact;
+                        break;
+                    }
                   });
                 },
+                borderRadius: BorderRadius.circular(16),
+                splashColor: schedule.color.withOpacity(0.1),
+                highlightColor: schedule.color.withOpacity(0.05),
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    color: schedule.color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: schedule.color.withOpacity(0.6),
-                      width: 2,
+                      color: schedule.color.withOpacity(0.3),
+                      width: 1,
                     ),
-                    color:
-                        schedule.isCompleted
-                            ? schedule.color
-                            : Colors.transparent,
                   ),
-                  child:
-                      schedule.isCompleted
-                          ? const Icon(
-                            Icons.check,
-                            size: 16,
-                            color: Colors.white,
-                          )
-                          : null,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8), // Time, Duration, and Type chips row
-          Row(
-            children: [
-              // Time chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: schedule.color.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: schedule.color.withOpacity(0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  _formatTimeToAmPm(schedule.startTime),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: schedule.color.withOpacity(0.9),
+                  child: AnimatedRotation(
+                    turns: _getArrowRotation(schedule.cardDisplayState),
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOut,
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: schedule.color.withOpacity(0.8),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Duration chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: schedule.color.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: schedule.color.withOpacity(0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  _calculateDuration(schedule.startTime, schedule.endTime),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: schedule.color.withOpacity(0.9),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8), // Type chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: schedule.color.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: schedule.color.withOpacity(0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  _getTypeLabel(schedule.type),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: schedule.color.withOpacity(0.9),
-                  ),
-                ),
-              ),
-              // Circular percentage indicator for routines
-              if (schedule.type == ScheduleType.routine) ...[
-                const SizedBox(width: 8),
-                _buildCircularPercentageIndicator(schedule),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Weekly indicator - dividing line with day circles
-          _buildWeeklyIndicator(schedule),
-          const SizedBox(height: 8),
-          // Separator line
-          Container(
-            height: 1,
-            color: schedule.color.withOpacity(0.3),
-            margin: const EdgeInsets.symmetric(vertical: 8),
-          ),
-          Text(
-            schedule.description,
-            style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCompletionCheckbox(ScheduleItem schedule) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          schedule.isCompleted = !schedule.isCompleted;
+        });
+      },
+      child: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: schedule.color.withOpacity(0.6), width: 2),
+          color: schedule.isCompleted ? schedule.color : Colors.transparent,
+        ),
+        child:
+            schedule.isCompleted
+                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                : null,
+      ),
+    );
+  }
+
+  Widget _buildChipsRow(ScheduleItem schedule) {
+    return Row(
+      children: [
+        // Time chip - always shown
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: schedule.color.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: schedule.color.withOpacity(0.5),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            _formatTimeToAmPm(schedule.startTime),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: schedule.color.withOpacity(0.9),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Duration chip - always shown
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: schedule.color.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: schedule.color.withOpacity(0.5),
+              width: 1,
+            ),
+          ),
+          child: Text(
+            _calculateDuration(schedule.startTime, schedule.endTime),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: schedule.color.withOpacity(0.9),
+            ),
+          ),
+        ),
+
+        // Additional chips for full state only
+        if (schedule.cardDisplayState == CardDisplayState.full) ...[
+          const SizedBox(width: 8),
+          // Type chip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: schedule.color.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: schedule.color.withOpacity(0.5),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              _getTypeLabel(schedule.type),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: schedule.color.withOpacity(0.9),
+              ),
+            ),
+          ),
+          // Circular percentage indicator for routines
+          if (schedule.type == ScheduleType.routine) ...[
+            const SizedBox(width: 8),
+            _buildCircularPercentageIndicator(schedule),
+          ],
+        ],
+      ],
     );
   }
 
@@ -721,6 +801,17 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     }
   }
 
+  double _getArrowRotation(CardDisplayState state) {
+    switch (state) {
+      case CardDisplayState.compact:
+        return 0.0; // Arrow pointing down
+      case CardDisplayState.medium:
+        return 0.25; // Arrow pointing right (90 degrees)
+      case CardDisplayState.full:
+        return 0.5; // Arrow pointing up (180 degrees)
+    }
+  }
+
   String _getTypeLabel(ScheduleType type) {
     switch (type) {
       case ScheduleType.routine:
@@ -743,6 +834,7 @@ class ScheduleItem {
   final List<int> weeklySchedule; // 0=Sunday, 1=Monday, ..., 6=Saturday
   final int percentage; // Progress percentage (0-100) for routines
   bool isCompleted;
+  CardDisplayState cardDisplayState; // Individual card display state
 
   ScheduleItem(
     this.title,
@@ -754,6 +846,7 @@ class ScheduleItem {
     this.isCompleted = false,
     this.weeklySchedule = const [],
     this.percentage = 0,
+    this.cardDisplayState = CardDisplayState.compact, // Default to compact
   ]);
 }
 
