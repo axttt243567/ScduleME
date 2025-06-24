@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'dart:math' as math;
 
 enum ScheduleType {
   routine, // Recurring activities (daily, weekly, etc.)
@@ -58,6 +59,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[800]!,
         'Gym session - Daily routine',
         ScheduleType.routine,
+        false,
+        [1, 2, 3, 4, 5], // Monday to Friday
+        85, // 85% progress
       ),
       ScheduleItem(
         'Team Standup',
@@ -66,6 +70,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue,
         'Daily sync meeting - Mon, Tue, Wed, Thu, Fri',
         ScheduleType.routine,
+        false,
+        [1, 2, 3, 4, 5], // Monday to Friday
+        92, // 92% progress
       ),
       ScheduleItem(
         'Code Review',
@@ -74,6 +81,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[600]!,
         'Review pull requests - Mon, Wed, Fri',
         ScheduleType.routine,
+        false,
+        [1, 3, 5], // Monday, Wednesday, Friday
+        67, // 67% progress
       ),
       ScheduleItem(
         'Call to Mom',
@@ -82,6 +92,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[400]!,
         'Weekly check-in call',
         ScheduleType.event,
+        false,
+        [0], // Sunday only
+        0, // Not a routine, no progress
       ),
     ],
     DateTime(
@@ -96,6 +109,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[800]!,
         'Outdoor exercise - Daily routine',
         ScheduleType.routine,
+        false,
+        [1, 2, 3, 4, 5, 6, 0], // Daily
+        78, // 78% progress
       ),
       ScheduleItem(
         'Project Planning',
@@ -104,6 +120,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.indigo,
         'Sprint planning meeting',
         ScheduleType.event,
+        false,
+        [2], // Tuesday only
+        0, // Not a routine, no progress
       ),
       ScheduleItem(
         'Lunch Meeting',
@@ -112,6 +131,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[700]!,
         'Business lunch with client',
         ScheduleType.event,
+        false,
+        [2], // Tuesday only
+        0, // Not a routine, no progress
       ),
       ScheduleItem(
         'Development',
@@ -120,6 +142,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[600]!,
         'Feature implementation - Daily routine',
         ScheduleType.routine,
+        false,
+        [1, 2, 3, 4, 5], // Weekdays
+        43, // 43% progress
       ),
     ],
     DateTime(
@@ -134,6 +159,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[500]!,
         'Morning stretch - Daily routine',
         ScheduleType.routine,
+        false,
+        [1, 2, 3, 4, 5, 6, 0], // Daily
+        91, // 91% progress
       ),
       ScheduleItem(
         'All Hands Meeting',
@@ -142,6 +170,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue,
         'Monthly company meeting',
         ScheduleType.event,
+        false,
+        [1], // Monday only
+        0, // Not a routine, no progress
       ),
       ScheduleItem(
         '1:1 with Manager',
@@ -150,6 +181,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[600]!,
         'Weekly performance review',
         ScheduleType.routine,
+        false,
+        [1], // Monday only
+        55, // 55% progress
       ),
       ScheduleItem(
         'Dentist Appointment',
@@ -158,6 +192,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[800]!,
         'Annual checkup',
         ScheduleType.event,
+        false,
+        [1], // Monday only
+        0, // Not a routine, no progress
       ),
     ],
     DateTime(
@@ -172,6 +209,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[600]!,
         'Nature exploration trip',
         ScheduleType.event,
+        false,
+        [6], // Saturday only
+        0, // Not a routine, no progress
       ),
       ScheduleItem(
         'Lunch with Friends',
@@ -180,6 +220,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[400]!,
         'Monthly social gathering',
         ScheduleType.event,
+        false,
+        [6], // Saturday only
+        0, // Not a routine, no progress
       ),
     ],
     // Add some reminders for specific dates
@@ -191,6 +234,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[400]!,
         'Weekly check-in call',
         ScheduleType.event,
+        false,
+        [0], // Sunday only
+        0, // Not a routine, no progress
       ),
     ],
     DateTime(2025, 6, 30): [
@@ -201,6 +247,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[700]!,
         'Pay monthly room rent',
         ScheduleType.reminder,
+        false,
+        [1], // Monday only
+        0, // Not a routine, no progress
       ),
       ScheduleItem(
         'Monthly Budget Review',
@@ -209,6 +258,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.indigo,
         'Review and plan expenses',
         ScheduleType.reminder,
+        false,
+        [1], // Monday only
+        0, // Not a routine, no progress
       ),
     ],
     DateTime(2025, 7, 1): [
@@ -219,6 +271,9 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         Colors.blue[800]!,
         'Pay quarterly insurance premium',
         ScheduleType.reminder,
+        false,
+        [2], // Tuesday only
+        0, // Not a routine, no progress
       ),
     ],
   };
@@ -395,51 +450,140 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
               Expanded(
                 child: Text(
                   schedule.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                    decoration:
+                        schedule.isCompleted
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                    decorationColor: Colors.grey,
                   ),
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: schedule.color.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _getTypeLabel(schedule.type),
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: schedule.color,
+              ), // Completion checkbox
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    schedule.isCompleted = !schedule.isCompleted;
+                  });
+                },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: schedule.color.withOpacity(0.6),
+                      width: 2,
+                    ),
+                    color:
+                        schedule.isCompleted
+                            ? schedule.color
+                            : Colors.transparent,
                   ),
+                  child:
+                      schedule.isCompleted
+                          ? const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.white,
+                          )
+                          : null,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8), // Time chip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: schedule.color.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: schedule.color.withOpacity(0.5),
-                width: 1,
+          const SizedBox(height: 8), // Time, Duration, and Type chips row
+          Row(
+            children: [
+              // Time chip
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: schedule.color.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: schedule.color.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _formatTimeToAmPm(schedule.startTime),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: schedule.color.withOpacity(0.9),
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              '${_formatTimeToAmPm(schedule.startTime)} - ${_formatTimeToAmPm(schedule.endTime)}',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: schedule.color.withOpacity(0.9),
+              const SizedBox(width: 8),
+              // Duration chip
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: schedule.color.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: schedule.color.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _calculateDuration(schedule.startTime, schedule.endTime),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: schedule.color.withOpacity(0.9),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8), // Type chip
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: schedule.color.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: schedule.color.withOpacity(0.5),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _getTypeLabel(schedule.type),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: schedule.color.withOpacity(0.9),
+                  ),
+                ),
+              ),
+              // Circular percentage indicator for routines
+              if (schedule.type == ScheduleType.routine) ...[
+                const SizedBox(width: 8),
+                _buildCircularPercentageIndicator(schedule),
+              ],
+            ],
           ),
+          const SizedBox(height: 12),
+          // Weekly indicator - dividing line with day circles
+          _buildWeeklyIndicator(schedule),
           const SizedBox(height: 8),
+          // Separator line
+          Container(
+            height: 1,
+            color: schedule.color.withOpacity(0.3),
+            margin: const EdgeInsets.symmetric(vertical: 8),
+          ),
           Text(
             schedule.description,
             style: TextStyle(fontSize: 14, color: Colors.grey[300]),
@@ -447,6 +591,103 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
         ],
       ),
     );
+  }
+
+  Widget _buildWeeklyIndicator(ScheduleItem schedule) {
+    final dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+    return Column(
+      children: [
+        // Dividing line
+        Container(
+          height: 1,
+          color: schedule.color.withOpacity(0.2),
+          margin: const EdgeInsets.only(bottom: 8),
+        ),
+        // Weekly day circles
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(7, (index) {
+            final isScheduled = schedule.weeklySchedule.contains(index);
+            return Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color:
+                    isScheduled
+                        ? schedule.color.withOpacity(0.8)
+                        : Colors.transparent,
+                border: Border.all(
+                  color: schedule.color.withOpacity(0.4),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  dayLabels[index],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        isScheduled
+                            ? Colors.white
+                            : schedule.color.withOpacity(0.6),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCircularPercentageIndicator(ScheduleItem schedule) {
+    return Container(
+      width: 32,
+      height: 32,
+      child: CustomPaint(
+        painter: CircularPercentagePainter(
+          percentage: schedule.percentage.toDouble(),
+          color: schedule.color,
+        ),
+        child: Center(
+          child: Text(
+            '${schedule.percentage}',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: schedule.color.withOpacity(0.9),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _calculateDuration(String startTime, String endTime) {
+    final startParts = startTime.split(':');
+    final endParts = endTime.split(':');
+
+    final startMinutes =
+        int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+    final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+
+    final durationMinutes = endMinutes - startMinutes;
+
+    if (durationMinutes <= 0) return '0 min';
+
+    final hours = durationMinutes ~/ 60;
+    final minutes = durationMinutes % 60;
+
+    if (hours == 0) {
+      return '${minutes}m';
+    } else if (minutes == 0) {
+      return '${hours}h';
+    } else {
+      return '${hours}h ${minutes}m';
+    }
   }
 
   String _formatTimeToAmPm(String timeString) {
@@ -499,6 +740,9 @@ class ScheduleItem {
   final Color color;
   final String description;
   final ScheduleType type;
+  final List<int> weeklySchedule; // 0=Sunday, 1=Monday, ..., 6=Saturday
+  final int percentage; // Progress percentage (0-100) for routines
+  bool isCompleted;
 
   ScheduleItem(
     this.title,
@@ -507,5 +751,54 @@ class ScheduleItem {
     this.color,
     this.description, [
     this.type = ScheduleType.event,
+    this.isCompleted = false,
+    this.weeklySchedule = const [],
+    this.percentage = 0,
   ]);
+}
+
+class CircularPercentagePainter extends CustomPainter {
+  final double percentage;
+  final Color color;
+
+  CircularPercentagePainter({required this.percentage, required this.color});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final strokeWidth = 2.5;
+    final radius = (size.width - strokeWidth) / 2;
+    final center = size.center(Offset.zero);
+
+    // Background circle (border)
+    final backgroundPaint =
+        Paint()
+          ..color = color.withOpacity(0.3)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    // Progress arc
+    if (percentage > 0) {
+      final progressPaint =
+          Paint()
+            ..color = color.withOpacity(0.8)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeCap = StrokeCap.round;
+
+      final sweepAngle = 2 * math.pi * (percentage / 100);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2, // Start at top
+        sweepAngle,
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
+  }
 }
