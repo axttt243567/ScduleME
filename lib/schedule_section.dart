@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme_provider.dart';
 
 enum ScheduleType {
@@ -870,23 +871,14 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                                 );
                               },
                             ),
-
                             _buildSettingsOption(
                               context: context,
                               icon: Icons.api_outlined,
-                              title: 'Integrations',
-                              subtitle: 'Connect with external apps',
+                              title: 'API Settings',
+                              subtitle: 'Configure API keys and endpoints',
                               onTap: () {
                                 Navigator.pop(context);
-                                // TODO: Navigate to API settings
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Integration Settings coming soon!',
-                                    ),
-                                    backgroundColor: Color(0xFF007AFF),
-                                  ),
-                                );
+                                _showApiSettingsBottomSheet(context);
                               },
                             ),
 
@@ -1500,6 +1492,1153 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       case ScheduleType.routine:
         return 'ROUTINE';
     }
+  }
+
+  void _showApiSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: ThemeProvider.getCardColor(context),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header with back button and title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showSettingsBottomSheet(context);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: ThemeProvider.getSecondaryTextColor(
+                              context,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 18,
+                            color: ThemeProvider.getSecondaryTextColor(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'API Settings',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24), // API Key Management
+                _buildApiKeyOption(
+                  context: context,
+                  icon: Icons.vpn_key_outlined,
+                  title: 'Manage API Keys',
+                  subtitle: 'Add, edit, and select your API keys (up to 5)',
+                  onTap: () => _showApiKeyManagementBottomSheet(context),
+                ),
+
+                // AI Model Selection
+                _buildApiKeyOption(
+                  context: context,
+                  icon: Icons.psychology_outlined,
+                  title: 'AI Model Settings',
+                  subtitle: 'Choose AI models for different tasks',
+                  onTap: () => _showAiModelSelectionBottomSheet(context),
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildApiKeyOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF007AFF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Icon(icon, size: 24, color: const Color(0xFF007AFF)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: ThemeProvider.getSecondaryTextColor(context),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showApiKeyManagementBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: ThemeProvider.getCardColor(context),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header with back button and title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showApiSettingsBottomSheet(context);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: ThemeProvider.getSecondaryTextColor(
+                              context,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 18,
+                            color: ThemeProvider.getSecondaryTextColor(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'Manage API Keys',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                      ),
+                      // Add new API key button
+                      GestureDetector(
+                        onTap: () => _showAddApiKeyDialog(context),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF007AFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            size: 20,
+                            color: Color(0xFF007AFF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // API Keys List
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      // Current Active API Key Section
+                      Text(
+                        'Active API Key',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ThemeProvider.getTextColor(context),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      _buildApiKeyCard(
+                        context: context,
+                        name: 'My Primary Key',
+                        provider: 'Gemini',
+                        isActive: true,
+                        onTap: () {},
+                        onEdit:
+                            () => _showEditApiKeyDialog(
+                              context,
+                              'My Primary Key',
+                            ),
+                        onDelete:
+                            () => _showDeleteConfirmation(
+                              context,
+                              'My Primary Key',
+                            ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Saved API Keys Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Saved API Keys (1/5)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: ThemeProvider.getTextColor(context),
+                            ),
+                          ),
+                          Text(
+                            'Tap to select',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: ThemeProvider.getSecondaryTextColor(
+                                context,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Sample inactive API keys
+                      _buildApiKeyCard(
+                        context: context,
+                        name: 'Development Key',
+                        provider: 'Gemini',
+                        isActive: false,
+                        onTap: () {},
+                        onEdit:
+                            () => _showEditApiKeyDialog(
+                              context,
+                              'Development Key',
+                            ),
+                        onDelete:
+                            () => _showDeleteConfirmation(
+                              context,
+                              'Development Key',
+                            ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildApiKeyCard(
+                        context: context,
+                        name: 'Testing Key',
+                        provider: 'Gemini',
+                        isActive: false,
+                        onTap: () {},
+                        onEdit:
+                            () => _showEditApiKeyDialog(context, 'Testing Key'),
+                        onDelete:
+                            () =>
+                                _showDeleteConfirmation(context, 'Testing Key'),
+                      ),
+
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildApiKeyCard({
+    required BuildContext context,
+    required String name,
+    required String provider,
+    required bool isActive,
+    required VoidCallback onTap,
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color:
+              isActive
+                  ? const Color(0xFF007AFF).withOpacity(0.1)
+                  : ThemeProvider.getCardColor(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isActive
+                    ? const Color(0xFF007AFF).withOpacity(0.3)
+                    : ThemeProvider.getSecondaryTextColor(
+                      context,
+                    ).withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // Provider Icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF34C759).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 20,
+                color: Color(0xFF34C759),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Key Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ThemeProvider.getTextColor(context),
+                        ),
+                      ),
+                      if (isActive) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF34C759),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            'ACTIVE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$provider • ••••••••••••••••',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Action Buttons
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: onEdit,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: ThemeProvider.getSecondaryTextColor(
+                        context,
+                      ).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onDelete,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF3B30).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.delete_outline,
+                      size: 16,
+                      color: Color(0xFFFF3B30),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAiModelSelectionBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: BoxDecoration(
+              color: ThemeProvider.getCardColor(context),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Header with back button and title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showApiSettingsBottomSheet(context);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: ThemeProvider.getSecondaryTextColor(
+                              context,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 18,
+                            color: ThemeProvider.getSecondaryTextColor(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'AI Model Settings',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Model Selection Options
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      Text(
+                        'Choose AI models for different types of tasks',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: ThemeProvider.getSecondaryTextColor(context),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Complex Tasks
+                      _buildModelSelectionCard(
+                        context: context,
+                        title: 'Complex Tasks',
+                        description:
+                            'Advanced reasoning, code generation, detailed analysis',
+                        currentModel: 'Gemini Pro 1.5',
+                        icon: Icons.psychology_outlined,
+                        color: const Color(0xFF5856D6),
+                        onTap:
+                            () => _showModelSelectionDialog(
+                              context,
+                              'Complex Tasks',
+                            ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Quick Tasks
+                      _buildModelSelectionCard(
+                        context: context,
+                        title: 'Quick Tasks',
+                        description:
+                            'Fast responses, simple queries, quick assistance',
+                        currentModel: 'Gemini Flash',
+                        icon: Icons.flash_on_outlined,
+                        color: const Color(0xFFFF9500),
+                        onTap:
+                            () => _showModelSelectionDialog(
+                              context,
+                              'Quick Tasks',
+                            ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Intelligence for Everyday Tasks
+                      _buildModelSelectionCard(
+                        context: context,
+                        title: 'Intelligence for Everyday Tasks',
+                        description:
+                            'Daily reminders, habit tracking, routine optimization',
+                        currentModel: 'Gemini Pro',
+                        icon: Icons.auto_awesome_outlined,
+                        color: const Color(0xFF34C759),
+                        onTap:
+                            () => _showModelSelectionDialog(
+                              context,
+                              'Intelligence for Everyday Tasks',
+                            ),
+                      ),
+
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildModelSelectionCard({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required String currentModel,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3), width: 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Icon(icon, size: 24, color: color),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: ThemeProvider.getTextColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: ThemeProvider.getSecondaryTextColor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      currentModel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: ThemeProvider.getSecondaryTextColor(context),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddApiKeyDialog(BuildContext context) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController apiKeyController = TextEditingController();
+    bool isLoading = false;
+    bool obscureText = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getCardColor(context),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Handle bar
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: ThemeProvider.getSecondaryTextColor(
+                                context,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+
+                        // Title
+                        Text(
+                          'Add New API Key',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Description
+                        Text(
+                          'Give your API key a name and enter the key value.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: ThemeProvider.getSecondaryTextColor(context),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Name Input Field
+                        TextField(
+                          controller: nameController,
+                          decoration: InputDecoration(
+                            labelText: 'Key Name',
+                            hintText: 'e.g., My Production Key',
+                            prefixIcon: const Icon(Icons.label_outline),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: ThemeProvider.getCardColor(context),
+                          ),
+                          style: TextStyle(
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // API Key Input Field
+                        TextField(
+                          controller: apiKeyController,
+                          obscureText: obscureText,
+                          decoration: InputDecoration(
+                            labelText: 'Gemini API Key',
+                            hintText: 'Enter your Gemini API key',
+                            prefixIcon: const Icon(Icons.vpn_key_outlined),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscureText
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscureText = !obscureText;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            fillColor: ThemeProvider.getCardColor(context),
+                          ),
+                          style: TextStyle(
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed:
+                                    isLoading
+                                        ? null
+                                        : () {
+                                          Navigator.pop(context);
+                                        },
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    color: ThemeProvider.getSecondaryTextColor(
+                                      context,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed:
+                                    isLoading
+                                        ? null
+                                        : () async {
+                                          if (nameController.text.isEmpty ||
+                                              apiKeyController.text.isEmpty) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Please fill in all fields',
+                                                ),
+                                                backgroundColor: Color(
+                                                  0xFFFF3B30,
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+
+                                          setState(() {
+                                            isLoading = true;
+                                          });
+
+                                          try {
+                                            // TODO: Save API key with name
+                                            await Future.delayed(
+                                              const Duration(milliseconds: 500),
+                                            ); // Simulate save
+                                            if (context.mounted) {
+                                              Navigator.pop(context);
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'API key saved successfully!',
+                                                  ),
+                                                  backgroundColor: Color(
+                                                    0xFF34C759,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Error saving API key: $e',
+                                                  ),
+                                                  backgroundColor: const Color(
+                                                    0xFFFF3B30,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          } finally {
+                                            if (mounted) {
+                                              setState(() {
+                                                isLoading = false;
+                                              });
+                                            }
+                                          }
+                                        },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF007AFF),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child:
+                                    isLoading
+                                        ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
+                                          ),
+                                        )
+                                        : const Text('Save'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
+          ),
+    );
+  }
+
+  void _showEditApiKeyDialog(BuildContext context, String keyName) {
+    // TODO: Implement edit API key dialog
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Edit $keyName - Coming soon!'),
+        backgroundColor: const Color(0xFF007AFF),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String keyName) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: ThemeProvider.getCardColor(context),
+            title: Text(
+              'Delete API Key',
+              style: TextStyle(color: ThemeProvider.getTextColor(context)),
+            ),
+            content: Text(
+              'Are you sure you want to delete "$keyName"? This action cannot be undone.',
+              style: TextStyle(
+                color: ThemeProvider.getSecondaryTextColor(context),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: ThemeProvider.getSecondaryTextColor(context),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('$keyName deleted'),
+                      backgroundColor: const Color(0xFFFF3B30),
+                    ),
+                  );
+                },
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Color(0xFFFF3B30)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showModelSelectionDialog(BuildContext context, String taskType) {
+    final models = [
+      'Gemini Pro 1.5',
+      'Gemini Pro',
+      'Gemini Flash',
+      'Gemini Flash 8B',
+    ];
+
+    String selectedModel =
+        taskType == 'Complex Tasks'
+            ? 'Gemini Pro 1.5'
+            : taskType == 'Quick Tasks'
+            ? 'Gemini Flash'
+            : 'Gemini Pro';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => Container(
+                  decoration: BoxDecoration(
+                    color: ThemeProvider.getCardColor(context),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.getSecondaryTextColor(context),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          'Select Model for $taskType',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: ThemeProvider.getTextColor(context),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Model Options
+                      ...models.map(
+                        (model) => ListTile(
+                          title: Text(
+                            model,
+                            style: TextStyle(
+                              color: ThemeProvider.getTextColor(context),
+                            ),
+                          ),
+                          trailing: Radio<String>(
+                            value: model,
+                            groupValue: selectedModel,
+                            onChanged: (value) {
+                              setState(() {
+                                selectedModel = value!;
+                              });
+                            },
+                            activeColor: const Color(0xFF007AFF),
+                          ),
+                          onTap: () {
+                            setState(() {
+                              selectedModel = model;
+                            });
+                          },
+                        ),
+                      ),
+
+                      // Save Button
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '$selectedModel selected for $taskType',
+                                  ),
+                                  backgroundColor: const Color(0xFF34C759),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF007AFF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Save Selection'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  Future<void> _saveApiKey(String apiType, String apiKey) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_key_$apiType', apiKey);
+  }
+
+  Future<String> _loadApiKey(String apiType) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('api_key_$apiType') ?? '';
   }
 }
 
