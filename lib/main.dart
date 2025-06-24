@@ -1,18 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'dart:math' as math;
-
-enum ScheduleType {
-  routine, // Recurring activities (daily, weekly, etc.)
-  event, // One-time events
-  reminder, // Important reminders
-}
-
-enum CardDisplayState {
-  compact, // Title, time chip, duration chip only
-  medium, // + completion checkbox
-  full, // All features (current implementation)
-}
+import 'schedule_section.dart';
 
 void main() {
   runApp(const ScheduleApp());
@@ -25,18 +13,30 @@ class ScheduleApp extends StatelessWidget {
     return MaterialApp(
       title: 'Schedule Me',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        colorScheme: const ColorScheme.dark(
-          primary: Colors.blue,
-          secondary: Colors.blueAccent,
-          surface: Colors.black,
-          background: Colors.black,
+      theme: ThemeData.light().copyWith(
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF007AFF), // iOS blue
+          secondary: Color(0xFF5856D6), // iOS purple
+          surface: Color(0xFFF2F2F7), // iOS light gray
+          background: Color(0xFFFFFFFF), // Pure white
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: Color(0xFF1C1C1E), // iOS dark text
+          onBackground: Color(0xFF1C1C1E),
         ),
-        scaffoldBackgroundColor: Colors.black,
+        scaffoldBackgroundColor: const Color(0xFFF2F2F7), // iOS background
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          elevation: 2,
+          backgroundColor: Color(0xFFF2F2F7),
+          foregroundColor: Color(0xFF1C1C1E),
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
+        cardTheme: CardTheme(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         useMaterial3: true,
       ),
@@ -56,256 +56,209 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
-  // Sample schedule data with different types
-  final Map<DateTime, List<ScheduleItem>> _schedules = {
-    DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day): [
-      ScheduleItem(
-        'Morning Workout',
-        '06:30',
-        '07:30',
-        Colors.blue[800]!,
-        'Gym session - Daily routine',
-        ScheduleType.routine,
-        false,
-        [1, 2, 3, 4, 5], // Monday to Friday
-        85, // 85% progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        'Team Standup',
-        '09:00',
-        '09:30',
-        Colors.blue,
-        'Daily sync meeting - Mon, Tue, Wed, Thu, Fri',
-        ScheduleType.routine,
-        false,
-        [1, 2, 3, 4, 5], // Monday to Friday
-        92, // 92% progress
-        CardDisplayState.medium, // Individual card state
-      ),
-      ScheduleItem(
-        'Code Review',
-        '17:00',
-        '18:00',
-        Colors.blue[600]!,
-        'Review pull requests - Mon, Wed, Fri',
-        ScheduleType.routine,
-        false,
-        [1, 3, 5], // Monday, Wednesday, Friday
-        67, // 67% progress
-        CardDisplayState.full, // Individual card state
-      ),
-      ScheduleItem(
-        'Call to Mom',
-        '19:00',
-        '19:30',
-        Colors.blue[400]!,
-        'Weekly check-in call',
-        ScheduleType.event,
-        false,
-        [0], // Sunday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-    DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day + 1,
-    ): [
-      ScheduleItem(
-        'Morning Jog',
-        '06:00',
-        '07:00',
-        Colors.blue[800]!,
-        'Outdoor exercise - Daily routine',
-        ScheduleType.routine,
-        false,
-        [1, 2, 3, 4, 5, 6, 0], // Daily
-        78, // 78% progress
-        CardDisplayState.medium, // Individual card state
-      ),
-      ScheduleItem(
-        'Project Planning',
-        '09:30',
-        '11:00',
-        Colors.indigo,
-        'Sprint planning meeting',
-        ScheduleType.event,
-        false,
-        [2], // Tuesday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        'Lunch Meeting',
-        '12:30',
-        '13:30',
-        Colors.blue[700]!,
-        'Business lunch with client',
-        ScheduleType.event,
-        false,
-        [2], // Tuesday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        'Development',
-        '14:00',
-        '17:00',
-        Colors.blue[600]!,
-        'Feature implementation - Daily routine',
-        ScheduleType.routine,
-        false,
-        [1, 2, 3, 4, 5], // Weekdays
-        43, // 43% progress
-        CardDisplayState.full, // Individual card state
-      ),
-    ],
-    DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day - 1,
-    ): [
-      ScheduleItem(
-        'Yoga Session',
-        '07:00',
-        '08:00',
-        Colors.blue[500]!,
-        'Morning stretch - Daily routine',
-        ScheduleType.routine,
-        false,
-        [1, 2, 3, 4, 5, 6, 0], // Daily
-        91, // 91% progress
-        CardDisplayState.full, // Individual card state
-      ),
-      ScheduleItem(
-        'All Hands Meeting',
-        '10:00',
-        '11:00',
-        Colors.blue,
-        'Monthly company meeting',
-        ScheduleType.event,
-        false,
-        [1], // Monday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        '1:1 with Manager',
-        '11:30',
-        '12:00',
-        Colors.blue[600]!,
-        'Weekly performance review',
-        ScheduleType.routine,
-        false,
-        [1], // Monday only
-        55, // 55% progress
-        CardDisplayState.medium, // Individual card state
-      ),
-      ScheduleItem(
-        'Dentist Appointment',
-        '15:00',
-        '16:00',
-        Colors.blue[800]!,
-        'Annual checkup',
-        ScheduleType.event,
-        false,
-        [1], // Monday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-    DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day + 2,
-    ): [
-      ScheduleItem(
-        'Weekend Hike',
-        '08:00',
-        '12:00',
-        Colors.blue[600]!,
-        'Nature exploration trip',
-        ScheduleType.event,
-        false,
-        [6], // Saturday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        'Lunch with Friends',
-        '13:00',
-        '15:00',
-        Colors.blue[400]!,
-        'Monthly social gathering',
-        ScheduleType.event,
-        false,
-        [6], // Saturday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-    // Add some reminders for specific dates
-    DateTime(2025, 6, 25): [
-      ScheduleItem(
-        'Call to Mom',
-        '19:00',
-        '19:30',
-        Colors.blue[400]!,
-        'Weekly check-in call',
-        ScheduleType.event,
-        false,
-        [0], // Sunday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-    DateTime(2025, 6, 30): [
-      ScheduleItem(
-        'Room Rent Due',
-        '09:00',
-        '09:00',
-        Colors.blue[700]!,
-        'Pay monthly room rent',
-        ScheduleType.reminder,
-        false,
-        [1], // Monday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-      ScheduleItem(
-        'Monthly Budget Review',
-        '20:00',
-        '20:30',
-        Colors.indigo,
-        'Review and plan expenses',
-        ScheduleType.reminder,
-        false,
-        [1], // Monday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-    DateTime(2025, 7, 1): [
-      ScheduleItem(
-        'Insurance Premium',
-        '10:00',
-        '10:00',
-        Colors.blue[800]!,
-        'Pay quarterly insurance premium',
-        ScheduleType.reminder,
-        false,
-        [2], // Tuesday only
-        0, // Not a routine, no progress
-        CardDisplayState.compact, // Individual card state
-      ),
-    ],
-  };
+  // Routines are now stored independently of dates - they repeat based on weeklySchedule
+  final List<ScheduleItem> _routines = [
+    ScheduleItem(
+      'Morning Workout',
+      '06:30',
+      '07:30',
+      Colors.blue[800]!,
+      'Gym session - Daily routine',
+      ScheduleType.routine,
+      false,
+      [1, 2, 3, 4, 5], // Monday to Friday
+      85, // 85% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Team Standup',
+      '09:00',
+      '09:30',
+      Colors.blue[800]!,
+      'Daily sync meeting - Mon, Tue, Wed, Thu, Fri',
+      ScheduleType.routine,
+      false,
+      [1, 2, 3, 4, 5], // Monday to Friday
+      92, // 92% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Code Review',
+      '17:00',
+      '18:00',
+      Colors.blue[800]!,
+      'Review pull requests - Mon, Wed, Fri',
+      ScheduleType.routine,
+      false,
+      [1, 3, 5], // Monday, Wednesday, Friday
+      67, // 67% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Call to Mom',
+      '19:00',
+      '19:30',
+      Colors.blue[800]!,
+      'Weekly check-in call',
+      ScheduleType.routine,
+      false,
+      [0], // Sunday only
+      75, // Weekly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Morning Jog',
+      '06:00',
+      '07:00',
+      Colors.blue[800]!,
+      'Outdoor exercise - Daily routine',
+      ScheduleType.routine,
+      false,
+      [1, 2, 3, 4, 5, 6, 0], // Daily
+      78, // 78% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Project Planning',
+      '09:30',
+      '11:00',
+      Colors.blue[800]!,
+      'Sprint planning meeting - Weekly routine',
+      ScheduleType.routine,
+      false,
+      [2], // Tuesday only
+      60, // Weekly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Lunch Meeting',
+      '12:30',
+      '13:30',
+      Colors.blue[800]!,
+      'Business lunch with client - Weekly routine',
+      ScheduleType.routine,
+      false,
+      [2], // Tuesday only
+      45, // Weekly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Development',
+      '14:00',
+      '17:00',
+      Colors.blue[800]!,
+      'Feature implementation - Daily routine',
+      ScheduleType.routine,
+      false,
+      [1, 2, 3, 4, 5], // Weekdays
+      43, // 43% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Yoga Session',
+      '07:00',
+      '08:00',
+      Colors.blue[800]!,
+      'Morning stretch - Daily routine',
+      ScheduleType.routine,
+      false,
+      [1, 2, 3, 4, 5, 6, 0], // Daily
+      91, // 91% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'All Hands Meeting',
+      '10:00',
+      '11:00',
+      Colors.blue[800]!,
+      'Monthly company meeting - Routine',
+      ScheduleType.routine,
+      false,
+      [1], // Monday only
+      85, // Monthly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      '1:1 with Manager',
+      '11:30',
+      '12:00',
+      Colors.blue[800]!,
+      'Weekly performance review',
+      ScheduleType.routine,
+      false,
+      [1], // Monday only
+      55, // 55% progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Weekend Hike',
+      '08:00',
+      '12:00',
+      Colors.blue[800]!,
+      'Weekly nature exploration routine',
+      ScheduleType.routine,
+      false,
+      [6], // Saturday only
+      80, // Weekly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Lunch with Friends',
+      '13:00',
+      '15:00',
+      Colors.blue[800]!,
+      'Weekly social gathering routine',
+      ScheduleType.routine,
+      false,
+      [6], // Saturday only
+      65, // Weekly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Room Rent Due',
+      '09:00',
+      '09:00',
+      Colors.blue[800]!,
+      'Monthly room rent payment routine',
+      ScheduleType.routine,
+      false,
+      [1], // Monday only
+      90, // Monthly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Monthly Budget Review',
+      '20:00',
+      '20:30',
+      Colors.blue[800]!,
+      'Monthly expense planning routine',
+      ScheduleType.routine,
+      false,
+      [1], // Monday only
+      85, // Monthly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+    ScheduleItem(
+      'Insurance Premium',
+      '10:00',
+      '10:00',
+      Colors.blue[800]!,
+      'Quarterly insurance payment routine',
+      ScheduleType.routine,
+      false,
+      [2], // Tuesday only
+      95, // Quarterly routine progress
+      CardDisplayState.compact, // Individual card state
+    ),
+  ];
   List<ScheduleItem> _getSchedulesForDay(DateTime day) {
-    // Normalize the date to remove time component
-    final normalizedDay = DateTime(day.year, day.month, day.day);
-    return _schedules[normalizedDay] ?? [];
+    // Get the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday)
+    final dayOfWeek = day.weekday % 7; // Convert to 0-6 format where 0=Sunday
+
+    // Filter routines that are scheduled for this day of the week
+    return _routines.where((routine) {
+      return routine.weeklySchedule.contains(dayOfWeek);
+    }).toList();
   }
 
   @override
@@ -313,585 +266,118 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schedule Me'),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 2,
+        backgroundColor: const Color(0xFFF2F2F7),
+        foregroundColor: const Color(0xFF1C1C1E),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
-      body: Column(
-        children: [
-          // Weekly Calendar Section
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  spreadRadius: 1,
-                  blurRadius: 5,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TableCalendar<ScheduleItem>(
-              firstDay: DateTime.utc(2020, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              calendarFormat: CalendarFormat.week,
-              eventLoader: _getSchedulesForDay,
-              startingDayOfWeek: StartingDayOfWeek.monday,
-              calendarStyle: const CalendarStyle(
-                outsideDaysVisible: false,
-                selectedDecoration: BoxDecoration(
-                  color: Colors.blue,
-                  shape: BoxShape.circle,
-                ),
-                todayDecoration: BoxDecoration(
-                  color: Colors.orange,
-                  shape: BoxShape.circle,
-                ),
-                markersMaxCount: 0, // Hide event markers
-                defaultTextStyle: TextStyle(color: Colors.white),
-                weekendTextStyle: TextStyle(color: Colors.grey),
-              ),
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                titleTextStyle: TextStyle(color: Colors.white, fontSize: 18),
-                leftChevronIcon: Icon(Icons.chevron_left, color: Colors.white),
-                rightChevronIcon: Icon(
-                  Icons.chevron_right,
-                  color: Colors.white,
-                ),
-              ),
-              daysOfWeekStyle: const DaysOfWeekStyle(
-                weekdayStyle: TextStyle(color: Colors.white70),
-                weekendStyle: TextStyle(color: Colors.grey),
-              ),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onPageChanged: (focusedDay) {
-                _focusedDay = focusedDay;
-              },
-            ),
-          ),
-
-          // Daily Schedule Timeline
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildScheduleTimeline(),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Add new schedule item
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Add new schedule - Coming soon!')),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _buildScheduleTimeline() {
-    final schedules = _getSchedulesForDay(_selectedDay);
-
-    if (schedules.isEmpty) {
-      return Center(
+      body: SingleChildScrollView(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.calendar_today, size: 64, color: Colors.grey[600]),
-            const SizedBox(height: 16),
-            Text(
-              'No schedules for this day',
-              style: TextStyle(fontSize: 18, color: Colors.grey[400]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tap the + button to add a new schedule',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return _buildHorizontalTimeline(schedules);
-  }
-
-  Widget _buildHorizontalTimeline(List<ScheduleItem> schedules) {
-    if (schedules.isEmpty) return const SizedBox.shrink();
-
-    // Sort schedules by start time
-    schedules.sort(
-      (a, b) => _parseTime(a.startTime).compareTo(_parseTime(b.startTime)),
-    );
-
-    return Expanded(
-      child: SingleChildScrollView(
-        child: Column(
-          children:
-              schedules.asMap().entries.map((entry) {
-                final index = entry.key;
-                final schedule = entry.value;
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  child: _buildScheduleCard(schedule, index, schedules.length),
-                );
-              }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScheduleCard(
-    ScheduleItem schedule,
-    int index,
-    int totalSchedules,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: schedule.color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(color: schedule.color.withOpacity(0.4)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row - always shown
-          Row(
-            children: [
-              _getTypeIcon(schedule.type),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  schedule.title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    decoration:
-                        schedule.isCompleted &&
-                                schedule.cardDisplayState !=
-                                    CardDisplayState.compact
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                    decorationColor: Colors.grey,
+            // Weekly Calendar Section
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    spreadRadius: 0,
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+              ),
+              child: TableCalendar<ScheduleItem>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                calendarFormat: CalendarFormat.week,
+                eventLoader: _getSchedulesForDay,
+                startingDayOfWeek: StartingDayOfWeek.monday,
+                calendarStyle: const CalendarStyle(
+                  outsideDaysVisible: false,
+                  selectedDecoration: BoxDecoration(
+                    color: Color(0xFF007AFF), // iOS blue
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: Color(0xFFFF9500), // iOS orange
+                    shape: BoxShape.circle,
+                  ),
+                  markersMaxCount: 0, // Hide event markers
+                  defaultTextStyle: TextStyle(
+                    color: Color(0xFF1C1C1E), // iOS dark text
+                    fontWeight: FontWeight.w500,
+                  ),
+                  weekendTextStyle: TextStyle(
+                    color: Color(0xFF8E8E93), // iOS gray
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              // Completion checkbox - only in medium and full states
-              if (schedule.cardDisplayState == CardDisplayState.medium ||
-                  schedule.cardDisplayState == CardDisplayState.full)
-                _buildCompletionCheckbox(schedule),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Chips row - always shown but different content based on state
-          _buildChipsRow(schedule), // Additional content based on state
-          if (schedule.cardDisplayState == CardDisplayState.full) ...[
-            const SizedBox(height: 12),
-            _buildWeeklyIndicator(schedule),
-            const SizedBox(height: 8),
-            // Separator line
-            Container(
-              height: 1,
-              color: schedule.color.withOpacity(0.3),
-              margin: const EdgeInsets.symmetric(vertical: 8),
-            ),
-            Text(
-              schedule.description,
-              style: TextStyle(fontSize: 14, color: Colors.grey[300]),
-            ),
-          ],
-
-          // Dropdown toggle button - positioned at bottom right
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  headerMargin: EdgeInsets.zero,
+                  headerPadding: EdgeInsets.zero,
+                  titleTextStyle: TextStyle(
+                    fontSize: 0,
+                    height: 0,
+                  ), // Hide title
+                  leftChevronVisible: false, // Hide left arrow
+                  rightChevronVisible: false, // Hide right arrow
+                ),
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                    color: Color(0xFF8E8E93), // iOS gray
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                  weekendStyle: TextStyle(
+                    color: Color(0xFF8E8E93), // iOS gray
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                onDaySelected: (selectedDay, focusedDay) {
                   setState(() {
-                    // Cycle through the states: compact -> medium -> full -> compact
-                    switch (schedule.cardDisplayState) {
-                      case CardDisplayState.compact:
-                        schedule.cardDisplayState = CardDisplayState.medium;
-                        break;
-                      case CardDisplayState.medium:
-                        schedule.cardDisplayState = CardDisplayState.full;
-                        break;
-                      case CardDisplayState.full:
-                        schedule.cardDisplayState = CardDisplayState.compact;
-                        break;
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                },
+                onPageChanged: (focusedDay) {
+                  _focusedDay = focusedDay;
+                },
+              ),
+            ), // Daily Schedule Timeline
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 16.0,
+              ), // Reduced horizontal padding
+              child: ScheduleSection(
+                selectedDay: _selectedDay,
+                routines: _routines,
+                onScheduleUpdated: (schedule) {
+                  setState(() {
+                    // Update the schedule item in the list
+                    final index = _routines.indexWhere(
+                      (item) => item.title == schedule.title,
+                    );
+                    if (index != -1) {
+                      _routines[index] = schedule;
                     }
                   });
                 },
-                borderRadius: BorderRadius.circular(16),
-                splashColor: schedule.color.withOpacity(0.1),
-                highlightColor: schedule.color.withOpacity(0.05),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: schedule.color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: schedule.color.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: AnimatedRotation(
-                    turns: _getArrowRotation(schedule.cardDisplayState),
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      size: 18,
-                      color: schedule.color.withOpacity(0.8),
-                    ),
-                  ),
-                ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompletionCheckbox(ScheduleItem schedule) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          schedule.isCompleted = !schedule.isCompleted;
-        });
-      },
-      child: Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: schedule.color.withOpacity(0.6), width: 2),
-          color: schedule.isCompleted ? schedule.color : Colors.transparent,
-        ),
-        child:
-            schedule.isCompleted
-                ? const Icon(Icons.check, size: 16, color: Colors.white)
-                : null,
-      ),
-    );
-  }
-
-  Widget _buildChipsRow(ScheduleItem schedule) {
-    return Row(
-      children: [
-        // Time chip - always shown
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: schedule.color.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: schedule.color.withOpacity(0.5),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            _formatTimeToAmPm(schedule.startTime),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: schedule.color.withOpacity(0.9),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-
-        // Duration chip - always shown
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: schedule.color.withOpacity(0.25),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: schedule.color.withOpacity(0.5),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            _calculateDuration(schedule.startTime, schedule.endTime),
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: schedule.color.withOpacity(0.9),
-            ),
-          ),
-        ),
-
-        // Additional chips for full state only
-        if (schedule.cardDisplayState == CardDisplayState.full) ...[
-          const SizedBox(width: 8),
-          // Type chip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: schedule.color.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: schedule.color.withOpacity(0.5),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              _getTypeLabel(schedule.type),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: schedule.color.withOpacity(0.9),
-              ),
-            ),
-          ),
-          // Circular percentage indicator for routines
-          if (schedule.type == ScheduleType.routine) ...[
-            const SizedBox(width: 8),
-            _buildCircularPercentageIndicator(schedule),
           ],
-        ],
-      ],
-    );
-  }
-
-  Widget _buildWeeklyIndicator(ScheduleItem schedule) {
-    final dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-    return Column(
-      children: [
-        // Dividing line
-        Container(
-          height: 1,
-          color: schedule.color.withOpacity(0.2),
-          margin: const EdgeInsets.only(bottom: 8),
-        ),
-        // Weekly day circles
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(7, (index) {
-            final isScheduled = schedule.weeklySchedule.contains(index);
-            return Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color:
-                    isScheduled
-                        ? schedule.color.withOpacity(0.8)
-                        : Colors.transparent,
-                border: Border.all(
-                  color: schedule.color.withOpacity(0.4),
-                  width: 1.5,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  dayLabels[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color:
-                        isScheduled
-                            ? Colors.white
-                            : schedule.color.withOpacity(0.6),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCircularPercentageIndicator(ScheduleItem schedule) {
-    return Container(
-      width: 32,
-      height: 32,
-      child: CustomPaint(
-        painter: CircularPercentagePainter(
-          percentage: schedule.percentage.toDouble(),
-          color: schedule.color,
-        ),
-        child: Center(
-          child: Text(
-            '${schedule.percentage}',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: schedule.color.withOpacity(0.9),
-            ),
-          ),
         ),
       ),
     );
-  }
-
-  String _calculateDuration(String startTime, String endTime) {
-    final startParts = startTime.split(':');
-    final endParts = endTime.split(':');
-
-    final startMinutes =
-        int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
-    final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
-
-    final durationMinutes = endMinutes - startMinutes;
-
-    if (durationMinutes <= 0) return '0 min';
-
-    final hours = durationMinutes ~/ 60;
-    final minutes = durationMinutes % 60;
-
-    if (hours == 0) {
-      return '${minutes}m';
-    } else if (minutes == 0) {
-      return '${hours}h';
-    } else {
-      return '${hours}h ${minutes}m';
-    }
-  }
-
-  String _formatTimeToAmPm(String timeString) {
-    final parts = timeString.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-
-    return '${displayHour.toString()}:${minute.toString().padLeft(2, '0')} $period';
-  }
-
-  TimeOfDay _parseTime(String timeString) {
-    final parts = timeString.split(':');
-    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-  }
-
-  Widget _getTypeIcon(ScheduleType type) {
-    switch (type) {
-      case ScheduleType.routine:
-        return Icon(Icons.repeat, size: 16, color: Colors.blue[300]);
-      case ScheduleType.event:
-        return Icon(Icons.event, size: 16, color: Colors.green[300]);
-      case ScheduleType.reminder:
-        return Icon(
-          Icons.notification_important,
-          size: 16,
-          color: Colors.orange[300],
-        );
-    }
-  }
-
-  double _getArrowRotation(CardDisplayState state) {
-    switch (state) {
-      case CardDisplayState.compact:
-        return 0.0; // Arrow pointing down
-      case CardDisplayState.medium:
-        return 0.25; // Arrow pointing right (90 degrees)
-      case CardDisplayState.full:
-        return 0.5; // Arrow pointing up (180 degrees)
-    }
-  }
-
-  String _getTypeLabel(ScheduleType type) {
-    switch (type) {
-      case ScheduleType.routine:
-        return 'ROUTINE';
-      case ScheduleType.event:
-        return 'EVENT';
-      case ScheduleType.reminder:
-        return 'REMINDER';
-    }
-  }
-}
-
-class ScheduleItem {
-  final String title;
-  final String startTime;
-  final String endTime;
-  final Color color;
-  final String description;
-  final ScheduleType type;
-  final List<int> weeklySchedule; // 0=Sunday, 1=Monday, ..., 6=Saturday
-  final int percentage; // Progress percentage (0-100) for routines
-  bool isCompleted;
-  CardDisplayState cardDisplayState; // Individual card display state
-
-  ScheduleItem(
-    this.title,
-    this.startTime,
-    this.endTime,
-    this.color,
-    this.description, [
-    this.type = ScheduleType.event,
-    this.isCompleted = false,
-    this.weeklySchedule = const [],
-    this.percentage = 0,
-    this.cardDisplayState = CardDisplayState.compact, // Default to compact
-  ]);
-}
-
-class CircularPercentagePainter extends CustomPainter {
-  final double percentage;
-  final Color color;
-
-  CircularPercentagePainter({required this.percentage, required this.color});
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokeWidth = 2.5;
-    final radius = (size.width - strokeWidth) / 2;
-    final center = size.center(Offset.zero);
-
-    // Background circle (border)
-    final backgroundPaint =
-        Paint()
-          ..color = color.withOpacity(0.3)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth;
-
-    canvas.drawCircle(center, radius, backgroundPaint);
-
-    // Progress arc
-    if (percentage > 0) {
-      final progressPaint =
-          Paint()
-            ..color = color.withOpacity(0.8)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = strokeWidth
-            ..strokeCap = StrokeCap.round;
-
-      final sweepAngle = 2 * math.pi * (percentage / 100);
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -math.pi / 2, // Start at top
-        sweepAngle,
-        false,
-        progressPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
   }
 }
