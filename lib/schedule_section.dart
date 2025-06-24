@@ -1269,7 +1269,8 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                                   fontWeight: FontWeight.bold,
                                   color: ThemeProvider.getTextColor(context),
                                 ),
-                              ),                            ),
+                              ),
+                            ),
                             const SizedBox(height: 8),
 
                             // Version
