@@ -1988,143 +1988,154 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
-          (context) => Container(
-            decoration: BoxDecoration(
-              color: ThemeProvider.getCardColor(context),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 36,
-                  height: 4,
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.7,
+            minChildSize: 0.5,
+            maxChildSize: 0.9,
+            expand: false,
+            builder:
+                (context, scrollController) => Container(
                   decoration: BoxDecoration(
-                    color: ThemeProvider.getSecondaryTextColor(context),
-                    borderRadius: BorderRadius.circular(2),
+                    color: ThemeProvider.getCardColor(context),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-
-                // Header with back button and title
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
+                  child: Column(
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showApiSettingsBottomSheet(context);
-                        },
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: ThemeProvider.getSecondaryTextColor(
-                              context,
-                            ).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Icon(
-                            Icons.arrow_back_ios_new,
-                            size: 18,
-                            color: ThemeProvider.getSecondaryTextColor(context),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'AI Model Settings',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: ThemeProvider.getTextColor(context),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Model Selection Options
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      Text(
-                        'Choose AI models for different types of tasks',
-                        style: TextStyle(
-                          fontSize: 14,
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
                           color: ThemeProvider.getSecondaryTextColor(context),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header with back button and title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context);
+                                _showApiSettingsBottomSheet(context);
+                              },
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: ThemeProvider.getSecondaryTextColor(
+                                    context,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Icon(
+                                  Icons.arrow_back_ios_new,
+                                  size: 18,
+                                  color: ThemeProvider.getSecondaryTextColor(
+                                    context,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                'AI Model Settings',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: ThemeProvider.getTextColor(context),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Complex Tasks
-                      _buildModelSelectionCard(
-                        context: context,
-                        title: 'Complex Tasks',
-                        description:
-                            'Advanced reasoning, code generation, detailed analysis',
-                        currentModel: 'Gemini Pro 1.5',
-                        icon: Icons.psychology_outlined,
-                        color: const Color(0xFF5856D6),
-                        onTap:
-                            () => _showModelSelectionDialog(
-                              context,
-                              'Complex Tasks',
+                      // Model Selection Options
+                      Expanded(
+                        child: ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          children: [
+                            Text(
+                              'Choose AI models for different types of tasks',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: ThemeProvider.getSecondaryTextColor(
+                                  context,
+                                ),
+                              ),
                             ),
-                      ),
+                            const SizedBox(height: 24),
 
-                      const SizedBox(height: 16),
-
-                      // Quick Tasks
-                      _buildModelSelectionCard(
-                        context: context,
-                        title: 'Quick Tasks',
-                        description:
-                            'Fast responses, simple queries, quick assistance',
-                        currentModel: 'Gemini Flash',
-                        icon: Icons.flash_on_outlined,
-                        color: const Color(0xFFFF9500),
-                        onTap:
-                            () => _showModelSelectionDialog(
-                              context,
-                              'Quick Tasks',
+                            // Complex Tasks
+                            _buildModelSelectionCard(
+                              context: context,
+                              title: 'Complex Tasks',
+                              description:
+                                  'Advanced reasoning, code generation, detailed analysis',
+                              currentModel: 'Gemini Pro 1.5',
+                              icon: Icons.psychology_outlined,
+                              color: const Color(0xFF5856D6),
+                              onTap:
+                                  () => _showModelSelectionDialog(
+                                    context,
+                                    'Complex Tasks',
+                                  ),
                             ),
-                      ),
 
-                      const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                      // Intelligence for Everyday Tasks
-                      _buildModelSelectionCard(
-                        context: context,
-                        title: 'Intelligence for Everyday Tasks',
-                        description:
-                            'Daily reminders, habit tracking, routine optimization',
-                        currentModel: 'Gemini Pro',
-                        icon: Icons.auto_awesome_outlined,
-                        color: const Color(0xFF34C759),
-                        onTap:
-                            () => _showModelSelectionDialog(
-                              context,
-                              'Intelligence for Everyday Tasks',
+                            // Quick Tasks
+                            _buildModelSelectionCard(
+                              context: context,
+                              title: 'Quick Tasks',
+                              description:
+                                  'Fast responses, simple queries, quick assistance',
+                              currentModel: 'Gemini Flash',
+                              icon: Icons.flash_on_outlined,
+                              color: const Color(0xFFFF9500),
+                              onTap:
+                                  () => _showModelSelectionDialog(
+                                    context,
+                                    'Quick Tasks',
+                                  ),
                             ),
-                      ),
 
-                      const SizedBox(height: 40),
+                            const SizedBox(height: 16),
+
+                            // Intelligence for Everyday Tasks
+                            _buildModelSelectionCard(
+                              context: context,
+                              title: 'Intelligence for Everyday Tasks',
+                              description:
+                                  'Daily reminders, habit tracking, routine optimization',
+                              currentModel: 'Gemini Pro',
+                              icon: Icons.auto_awesome_outlined,
+                              color: const Color(0xFF34C759),
+                              onTap:
+                                  () => _showModelSelectionDialog(
+                                    context,
+                                    'Intelligence for Everyday Tasks',
+                                  ),
+                            ),
+
+                            const SizedBox(height: 40),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
           ),
     );
   }
@@ -2511,6 +2522,53 @@ class _ScheduleSectionState extends State<ScheduleSection> {
     );
   }
 
+  String _getModelDescription(String model, String taskType) {
+    // Task-specific descriptions (4-5 words each)
+    switch (taskType) {
+      case 'Complex Tasks':
+        switch (model) {
+          case 'Gemini Pro 1.5':
+            return 'Advanced reasoning and analysis';
+          case 'Gemini Pro':
+            return 'Comprehensive problem solving power';
+          case 'Gemini Flash':
+            return 'Quick complex task handling';
+          case 'Gemini Flash 8B':
+            return 'Efficient lightweight complex processing';
+          default:
+            return 'Advanced AI capabilities';
+        }
+      case 'Quick Tasks':
+        switch (model) {
+          case 'Gemini Pro 1.5':
+            return 'Thorough but slower responses';
+          case 'Gemini Pro':
+            return 'Balanced speed and accuracy';
+          case 'Gemini Flash':
+            return 'Lightning fast quick responses';
+          case 'Gemini Flash 8B':
+            return 'Ultra rapid lightweight responses';
+          default:
+            return 'Fast response capabilities';
+        }
+      case 'Intelligence for Everyday Tasks':
+        switch (model) {
+          case 'Gemini Pro 1.5':
+            return 'Detailed habit optimization insights';
+          case 'Gemini Pro':
+            return 'Smart daily routine management';
+          case 'Gemini Flash':
+            return 'Quick daily task assistance';
+          case 'Gemini Flash 8B':
+            return 'Simple everyday task helper';
+          default:
+            return 'Daily intelligence assistance';
+        }
+      default:
+        return 'AI model capabilities';
+    }
+  }
+
   void _showModelSelectionDialog(BuildContext context, String taskType) {
     final models = [
       'Gemini Pro 1.5',
@@ -2567,32 +2625,69 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-
-                      // Model Options
+                      const SizedBox(height: 20), // Model Options
                       ...models.map(
-                        (model) => ListTile(
-                          title: Text(
-                            model,
-                            style: TextStyle(
-                              color: ThemeProvider.getTextColor(context),
+                        (model) => Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                selectedModel == model
+                                    ? const Color(0xFF007AFF).withOpacity(0.1)
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  selectedModel == model
+                                      ? const Color(0xFF007AFF).withOpacity(0.3)
+                                      : ThemeProvider.getSecondaryTextColor(
+                                        context,
+                                      ).withOpacity(0.2),
+                              width: 1,
                             ),
                           ),
-                          trailing: Radio<String>(
-                            value: model,
-                            groupValue: selectedModel,
-                            onChanged: (value) {
+                          child: ListTile(
+                            title: Text(
+                              model,
+                              style: TextStyle(
+                                color: ThemeProvider.getTextColor(context),
+                                fontWeight:
+                                    selectedModel == model
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                              ),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                _getModelDescription(model, taskType),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: ThemeProvider.getSecondaryTextColor(
+                                    context,
+                                  ),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                            trailing: Radio<String>(
+                              value: model,
+                              groupValue: selectedModel,
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedModel = value!;
+                                });
+                              },
+                              activeColor: const Color(0xFF007AFF),
+                            ),
+                            onTap: () {
                               setState(() {
-                                selectedModel = value!;
+                                selectedModel = model;
                               });
                             },
-                            activeColor: const Color(0xFF007AFF),
                           ),
-                          onTap: () {
-                            setState(() {
-                              selectedModel = model;
-                            });
-                          },
                         ),
                       ),
 
