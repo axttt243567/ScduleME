@@ -149,14 +149,14 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    Icons.repeat,
+                                    Icons.calendar_today,
                                     size: 24,
                                     color: const Color(0xFF34C759),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'ScheduleMe - Routine Management',
+                                      'Schedules - Routine Management',
                                       style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -679,6 +679,495 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     }
   }
 
+  void _showScduleMeBottomSheet(BuildContext context) {
+    int selectedDayIndex =
+        DateTime.now().weekday % 7; // 0=Sunday, 1=Monday, etc.
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => DraggableScrollableSheet(
+                  initialChildSize: 0.8,
+                  minChildSize: 0.6,
+                  maxChildSize: 0.95,
+                  expand: false,
+                  builder:
+                      (context, scrollController) => Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Handle bar
+                            Container(
+                              margin: const EdgeInsets.only(top: 12),
+                              width: 36,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            // Header
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.repeat,
+                                    size: 24,
+                                    color: const Color(0xFF34C759),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          'ScduleMe',
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        GestureDetector(
+                                          onTap:
+                                              () => _showABottomSheet(context),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(
+                                                0xFF007AFF,
+                                              ).withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: const Color(
+                                                  0xFF007AFF,
+                                                ).withOpacity(0.3),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.auto_awesome,
+                                                  size: 14,
+                                                  color: const Color(
+                                                    0xFF007AFF,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'A',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: const Color(
+                                                      0xFF007AFF,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => Navigator.pop(context),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.close,
+                                        size: 18,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 24,
+                            ), // Weekly Calendar for ScduleMe
+                            _buildWeeklyCalendar(context, selectedDayIndex, (
+                              dayIndex,
+                            ) {
+                              setState(() {
+                                selectedDayIndex = dayIndex;
+                              });
+                            }),
+
+                            const SizedBox(height: 20),
+                            // Day's Routines Section
+                            Expanded(
+                              child: _buildDayRoutinesSection(
+                                context,
+                                selectedDayIndex,
+                                scrollController,
+                                setState,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                ),
+          ),
+    );
+  }
+
+  void _showABottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.8,
+            minChildSize: 0.6,
+            maxChildSize: 0.95,
+            expand: false,
+            builder:
+                (context, scrollController) => Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF007AFF).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.auto_awesome,
+                                size: 24,
+                                color: const Color(0xFF007AFF),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'A - AI Assistant',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Content
+                      Expanded(
+                        child: _buildAContentSection(context, scrollController),
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  Widget _buildAContentSection(
+    BuildContext context,
+    ScrollController scrollController,
+  ) {
+    final features = [
+      {
+        'title': 'Smart Schedule Analysis',
+        'description':
+            'AI-powered analysis of your daily routines and productivity patterns',
+        'icon': Icons.analytics_outlined,
+        'color': const Color(0xFF007AFF),
+      },
+      {
+        'title': 'Intelligent Suggestions',
+        'description':
+            'Get personalized recommendations to optimize your schedule',
+        'icon': Icons.lightbulb_outline,
+        'color': const Color(0xFFFF9500),
+      },
+      {
+        'title': 'Time Optimization',
+        'description':
+            'Automatically detect and eliminate time gaps in your schedule',
+        'icon': Icons.speed,
+        'color': const Color(0xFF34C759),
+      },
+      {
+        'title': 'Habit Formation',
+        'description': 'AI-guided habit building with personalized coaching',
+        'icon': Icons.psychology,
+        'color': const Color(0xFF5856D6),
+      },
+      {
+        'title': 'Predictive Planning',
+        'description':
+            'Forecast your future scheduling needs based on patterns',
+        'icon': Icons.trending_up,
+        'color': const Color(0xFFFF3B30),
+      },
+    ];
+
+    return Column(
+      children: [
+        // Header Section
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'AI-Powered Features',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF007AFF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'BETA',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF007AFF),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Features List
+        Expanded(
+          child: ListView.builder(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: features.length,
+            itemBuilder: (context, index) {
+              final feature = features[index];
+              return _buildAFeatureCard(
+                context,
+                feature['title'] as String,
+                feature['description'] as String,
+                feature['icon'] as IconData,
+                feature['color'] as Color,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAFeatureCard(
+    BuildContext context,
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            spreadRadius: 0,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 20, color: color),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF007AFF).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.auto_awesome,
+                    size: 14,
+                    color: const Color(0xFF007AFF),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              description,
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Action button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('$title is coming soon!'),
+                      backgroundColor: color,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: color.withOpacity(0.1),
+                  foregroundColor: color,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: color.withOpacity(0.3), width: 1),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Enable $title',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthNames = [
@@ -721,13 +1210,13 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.repeat,
+                    Icons.calendar_today,
                     size: 16,
                     color: const Color(0xFF5856D6), // iOS purple
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'ScheduleMe',
+                    'Schedules',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -737,7 +1226,42 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                 ],
               ),
             ),
-            tooltip: 'Manage Routines',
+            tooltip: 'Manage Schedules',
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => _showScduleMeBottomSheet(context),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF34C759).withOpacity(0.1), // iOS green
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFF34C759).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.repeat,
+                    size: 16,
+                    color: const Color(0xFF34C759), // iOS green
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ScduleMe',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF34C759), // iOS green
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            tooltip: 'ScduleMe Features',
           ),
           const SizedBox(width: 8),
         ],
