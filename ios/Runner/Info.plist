@@ -42,8 +42,12 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
+	<!-- Permissions for image picker -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to camera to take photos of your schedules for AI processing.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to select schedule images for AI processing.</string>
 </dict>
 </plist>

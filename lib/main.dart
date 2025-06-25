@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io';
 import 'schedule_section.dart';
 import 'theme_provider.dart';
 import 'database_helper.dart';
@@ -750,7 +754,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                         const SizedBox(width: 12),
                                         GestureDetector(
                                           onTap:
-                                              () => _showABottomSheet(context),
+                                              () => _showAIBottomSheet(context),
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 10,
@@ -781,7 +785,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
-                                                  'A',
+                                                  'AI',
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
@@ -851,15 +855,15 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     );
   }
 
-  void _showABottomSheet(BuildContext context) {
+  void _showAIBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
           (context) => DraggableScrollableSheet(
-            initialChildSize: 0.8,
-            minChildSize: 0.6,
+            initialChildSize: 0.85,
+            minChildSize: 0.5,
             maxChildSize: 0.95,
             expand: false,
             builder:
@@ -907,7 +911,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'A - AI Assistant',
+                                'AI - Schedule Creator',
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -939,7 +943,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
                       // Content
                       Expanded(
@@ -956,43 +960,6 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     BuildContext context,
     ScrollController scrollController,
   ) {
-    final features = [
-      {
-        'title': 'Smart Schedule Analysis',
-        'description':
-            'AI-powered analysis of your daily routines and productivity patterns',
-        'icon': Icons.analytics_outlined,
-        'color': const Color(0xFF007AFF),
-      },
-      {
-        'title': 'Intelligent Suggestions',
-        'description':
-            'Get personalized recommendations to optimize your schedule',
-        'icon': Icons.lightbulb_outline,
-        'color': const Color(0xFFFF9500),
-      },
-      {
-        'title': 'Time Optimization',
-        'description':
-            'Automatically detect and eliminate time gaps in your schedule',
-        'icon': Icons.speed,
-        'color': const Color(0xFF34C759),
-      },
-      {
-        'title': 'Habit Formation',
-        'description': 'AI-guided habit building with personalized coaching',
-        'icon': Icons.psychology,
-        'color': const Color(0xFF5856D6),
-      },
-      {
-        'title': 'Predictive Planning',
-        'description':
-            'Forecast your future scheduling needs based on patterns',
-        'icon': Icons.trending_up,
-        'color': const Color(0xFFFF3B30),
-      },
-    ];
-
     return Column(
       children: [
         // Header Section
@@ -1002,7 +969,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
             children: [
               Expanded(
                 child: Text(
-                  'AI-Powered Features',
+                  'Upload Your Schedules',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -1017,7 +984,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'BETA',
+                  'AI POWERED',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1028,142 +995,434 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-
-        // Features List
+        const SizedBox(height: 16), // Upload Feature
         Expanded(
-          child: ListView.builder(
+          child: SingleChildScrollView(
             controller: scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: features.length,
-            itemBuilder: (context, index) {
-              final feature = features[index];
-              return _buildAFeatureCard(
-                context,
-                feature['title'] as String,
-                feature['description'] as String,
-                feature['icon'] as IconData,
-                feature['color'] as Color,
-              );
-            },
+            child: Column(
+              children: [
+                // Main upload card
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        spreadRadius: 0,
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        // Icon
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF007AFF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            Icons.upload_file,
+                            size: 32,
+                            color: const Color(0xFF007AFF),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Title
+                        Text(
+                          'Upload Schedule Image',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Description
+                        Text(
+                          'Take a photo or upload an image of your timetable, schedule, or handwritten notes. Our AI will automatically create routines for you.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Upload buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _pickImageFromCamera(context),
+                                icon: Icon(Icons.camera_alt, size: 16),
+                                label: Text('Take Photo'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF34C759),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _pickImageFromGallery(context),
+                                icon: Icon(Icons.photo_library, size: 16),
+                                label: Text('Choose Image'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF007AFF),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Info cards
+                _buildInfoCard(
+                  context,
+                  Icons.auto_awesome,
+                  'AI Processing',
+                  'Advanced AI analyzes your image and extracts schedule information automatically.',
+                  const Color(0xFF5856D6),
+                ),
+
+                const SizedBox(height: 10),
+
+                _buildInfoCard(
+                  context,
+                  Icons.schedule,
+                  'Smart Recognition',
+                  'Recognizes times, subjects, days, and activities from various image formats.',
+                  const Color(0xFFFF9500),
+                ),
+
+                const SizedBox(height: 10),
+
+                _buildInfoCard(
+                  context,
+                  Icons.check_circle,
+                  'Auto-Create Routines',
+                  'Automatically creates multiple routines that work just like manually created ones.',
+                  const Color(0xFF34C759),
+                ),
+
+                // Add bottom padding to ensure content doesn't get cut off
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildAFeatureCard(
+  Widget _buildInfoCard(
     BuildContext context,
+    IconData icon,
     String title,
     String description,
-    IconData icon,
     Color color,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            spreadRadius: 0,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, size: 20, color: color),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF007AFF).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: const Color(0xFF007AFF),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Action button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('$title is coming soon!'),
-                      backgroundColor: color,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: color.withOpacity(0.1),
-                  foregroundColor: color,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: color.withOpacity(0.3), width: 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Image picking methods
+  Future<void> _pickImageFromCamera(BuildContext context) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        _processImageWithAI(context, File(image.path));
+      }
+    } catch (e) {
+      _showErrorSnackBar(context, 'Failed to take photo: $e');
+    }
+  }
+
+  Future<void> _pickImageFromGallery(BuildContext context) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        _processImageWithAI(context, File(image.path));
+      }
+    } catch (e) {
+      _showErrorSnackBar(context, 'Failed to pick image: $e');
+    }
+  }
+
+  Future<void> _processImageWithAI(BuildContext context, File imageFile) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: const Color(0xFF007AFF)),
+                const SizedBox(height: 16),
+                Text(
+                  'AI is analyzing your schedule...',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.auto_awesome, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Enable $title',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
+          ),
+    );
+
+    try {
+      // Convert image to base64
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Call Gemini API
+      final schedules = await _callGeminiAPI(base64Image);
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (schedules.isNotEmpty) {
+        // Create routines from AI response
+        await _createRoutinesFromAI(schedules);
+
+        // Close AI bottom sheet
+        Navigator.pop(context);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Successfully created ${schedules.length} routine${schedules.length != 1 ? 's' : ''} from your image!',
+            ),
+            backgroundColor: const Color(0xFF34C759),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        _showErrorSnackBar(
+          context,
+          'No schedules found in the image. Please try with a clearer image.',
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      Navigator.pop(context);
+      _showErrorSnackBar(context, 'Failed to process image: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _callGeminiAPI(String base64Image) async {
+    const String apiKey = 'AIzaSyDRPiM0HxRw68QMB6ed1CuHKrLQnbd5yVQ';
+    const String apiUrl =
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey';
+
+    final prompt = '''
+Analyze this image and extract all schedule/routine information. Return ONLY a valid JSON array with the following structure for each routine found:
+
+[
+  {
+    "title": "Subject/Activity name",
+    "description": "Brief description or additional notes",
+    "startTime": "HH:MM" (24-hour format),
+    "endTime": "HH:MM" (24-hour format),
+    "weeklySchedule": [0, 1, 2, 3, 4, 5, 6] (array of day indices: 0=Sunday, 1=Monday, etc.)
+  }
+]
+
+Important rules:
+1. Extract ALL visible schedules/routines from the image
+2. Use 24-hour time format (e.g., "09:00", "14:30")
+3. For weeklySchedule, include only the days when this routine occurs
+4. If no specific days are mentioned, assume it's for weekdays [1,2,3,4,5]
+5. Make realistic time durations (minimum 15 minutes, maximum 4 hours)
+6. Return ONLY the JSON array, no other text
+7. If no clear schedule is found, return []
+
+Extract schedules from: timetables, handwritten notes, printed schedules, class schedules, work schedules, etc.
+''';
+
+    final requestBody = {
+      'contents': [
+        {
+          'parts': [
+            {'text': prompt},
+            {
+              'inline_data': {'mime_type': 'image/jpeg', 'data': base64Image},
+            },
           ],
-        ),
+        },
+      ],
+      'generationConfig': {
+        'temperature': 0.1,
+        'topK': 1,
+        'topP': 1,
+        'maxOutputTokens': 2048,
+      },
+    };
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(requestBody),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+      final generatedText =
+          responseData['candidates'][0]['content']['parts'][0]['text'];
+
+      // Clean the response and parse JSON
+      String cleanedText = generatedText.trim();
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.substring(7);
+      }
+      if (cleanedText.endsWith('```')) {
+        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+      }
+
+      try {
+        final List<dynamic> schedules = jsonDecode(cleanedText.trim());
+        return schedules.cast<Map<String, dynamic>>();
+      } catch (e) {
+        print('Failed to parse AI response: $e');
+        print('AI Response: $generatedText');
+        return [];
+      }
+    } else {
+      throw Exception(
+        'API call failed: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  Future<void> _createRoutinesFromAI(
+    List<Map<String, dynamic>> schedules,
+  ) async {
+    for (final schedule in schedules) {
+      try {
+        final routine = ScheduleItem(
+          schedule['title'] ?? 'Untitled',
+          schedule['startTime'] ?? '09:00',
+          schedule['endTime'] ?? '10:00',
+          const Color(0xFF007AFF), // Default color
+          schedule['description'] ?? '',
+          ScheduleType.routine,
+          false, // isCompleted
+          List<int>.from(schedule['weeklySchedule'] ?? [1, 2, 3, 4, 5]),
+          0, // percentage
+          CardDisplayState.compact,
+          null, // id
+          DateTime.now(), // createdAt
+        );
+
+        await _addRoutine(routine);
+      } catch (e) {
+        print('Failed to create routine: $e');
+      }
+    }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: const Color(0xFFFF3B30),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
