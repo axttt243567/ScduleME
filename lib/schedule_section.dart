@@ -140,7 +140,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
           const SizedBox(height: 20), // Dividing line after empty state
           Container(
             height: 1,
-            color: const Color(0xFFE5E5EA), // iOS separator color
+            color: Theme.of(context).dividerColor.withOpacity(0.3),
             margin: const EdgeInsets.symmetric(horizontal: 0),
           ),
         ],
@@ -152,7 +152,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         const SizedBox(height: 20), // Dividing line after routine cards
         Container(
           height: 1,
-          color: const Color(0xFFE5E5EA), // iOS separator color
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
           margin: const EdgeInsets.symmetric(horizontal: 0),
         ),
         const SizedBox(height: 20), // Space before new section
@@ -160,7 +160,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         const SizedBox(height: 20), // Space after new section
         Container(
           height: 1,
-          color: const Color(0xFFE5E5EA), // iOS separator color
+          color: Theme.of(context).dividerColor.withOpacity(0.3),
           margin: const EdgeInsets.symmetric(horizontal: 0),
         ),
       ],
@@ -199,7 +199,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         20.0,
       ), // Increased padding for better spacing
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
@@ -224,14 +224,16 @@ class _ScheduleSectionState extends State<ScheduleSection> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1C1C1E), // iOS dark text
+                    color: Theme.of(context).colorScheme.onSurface,
                     decoration:
                         schedule.isCompleted &&
                                 schedule.cardDisplayState !=
                                     CardDisplayState.compact
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
-                    decorationColor: const Color(0xFF8E8E93), // iOS gray
+                    decorationColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                 ),
               ), // Completion checkbox - only in full state
@@ -250,7 +252,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
             const SizedBox(height: 8), // Separator line
             Container(
               height: 1,
-              color: const Color(0xFFE5E5EA), // iOS separator color
+              color: Theme.of(context).dividerColor.withOpacity(0.2),
               margin: const EdgeInsets.symmetric(vertical: 8),
             ), // Description
             Text(
@@ -496,7 +498,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         // Dividing line
         Container(
           height: 1,
-          color: const Color(0xFFE5E5EA), // iOS separator color
+          color: Theme.of(context).dividerColor.withOpacity(0.2),
           margin: const EdgeInsets.only(bottom: 8),
         ),
         // Weekly day circles
@@ -569,7 +571,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
         // Separator line before feature chips
         Container(
           height: 1,
-          color: const Color(0xFFE5E5EA), // iOS separator color
+          color: Theme.of(context).dividerColor.withOpacity(0.2),
           margin: const EdgeInsets.only(bottom: 12),
         ), // Horizontally scrollable chips
         SizedBox(
@@ -676,7 +678,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
       width: double.infinity,
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
@@ -695,7 +697,7 @@ class _ScheduleSectionState extends State<ScheduleSection> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFF1C1C1E), // iOS dark text
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -777,9 +779,9 @@ class _ScheduleSectionState extends State<ScheduleSection> {
             expand: false,
             builder:
                 (context, scrollController) => Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
@@ -3612,7 +3614,7 @@ class _CreateRoutineBottomSheetState extends State<_CreateRoutineBottomSheet> {
     final inputBackgroundColor =
         isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7);
     final textColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
-    final dividerColor = const Color(0xFF8E8E93).withOpacity(0.3);
+    final dividerColor = Theme.of(context).dividerColor.withOpacity(0.3);
 
     return Container(
       decoration: BoxDecoration(
