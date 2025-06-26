@@ -51,7 +51,19 @@ class _ScheduleAppState extends State<ScheduleApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeProvider.lightTheme,
       darkTheme: ThemeProvider.darkTheme,
-      themeMode: _themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      themeMode:
+          _themeProvider.currentTheme == AppTheme.light
+              ? ThemeMode.light
+              : (_themeProvider.currentTheme == AppTheme.dark
+                  ? ThemeMode.dark
+                  : ThemeMode.dark), // Midnight Bloom uses dark mode base
+      builder: (context, child) {
+        // Override theme for Midnight Bloom
+        if (_themeProvider.currentTheme == AppTheme.midnightBloom) {
+          return Theme(data: ThemeProvider.midnightBloomTheme, child: child!);
+        }
+        return child!;
+      },
       home: ScheduleHomePage(themeProvider: _themeProvider),
     );
   }
@@ -859,7 +871,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: const Color(0xFFFF3B30),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -895,7 +907,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                             Icon(
                                               Icons.close,
                                               size: 16,
-                                              color: const Color(0xFF8E8E93),
+                                              color: Colors.white,
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
@@ -903,7 +915,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF8E8E93),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -945,7 +957,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                             Icon(
                                               Icons.add,
                                               size: 16,
-                                              color: const Color(0xFF34C759),
+                                              color: Colors.white,
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
@@ -953,7 +965,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF34C759),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -990,7 +1002,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                             Icon(
                                               Icons.auto_awesome,
                                               size: 16,
-                                              color: const Color(0xFF007AFF),
+                                              color: Colors.white,
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
@@ -998,7 +1010,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF007AFF),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -1035,7 +1047,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                             Icon(
                                               Icons.clear_all,
                                               size: 16,
-                                              color: const Color(0xFFFF3B30),
+                                              color: Colors.white,
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
@@ -1043,7 +1055,7 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: const Color(0xFFFF3B30),
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ],
@@ -2070,6 +2082,275 @@ Return ONLY the JSON array with no additional text.
     );
   }
 
+  void _showThemeSettingsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => DraggableScrollableSheet(
+            initialChildSize: 0.5,
+            minChildSize: 0.3,
+            maxChildSize: 0.7,
+            expand: false,
+            builder:
+                (context, scrollController) => Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle bar
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF5856D6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.palette,
+                                size: 24,
+                                color: const Color(0xFF5856D6),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Theme Settings',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Theme Options
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Choose your theme',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Theme Cards
+                              ...AppTheme.values
+                                  .map(
+                                    (theme) => _buildThemeCard(
+                                      context,
+                                      theme,
+                                      widget.themeProvider.currentTheme ==
+                                          theme,
+                                    ),
+                                  )
+                                  .toList(),
+
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ),
+    );
+  }
+
+  Widget _buildThemeCard(
+    BuildContext context,
+    AppTheme theme,
+    bool isSelected,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: () {
+          widget.themeProvider.setTheme(theme);
+          // Add haptic feedback
+          HapticFeedback.lightImpact();
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color:
+                isSelected
+                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                    : Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color:
+                  isSelected
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
+                      : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                spreadRadius: 0,
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Theme preview container
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: _getThemeGradient(theme),
+                ),
+                child: Icon(
+                  ThemeProvider.getThemeIcon(theme),
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // Theme info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ThemeProvider.getThemeName(theme),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _getThemeDescription(theme),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Selection indicator
+              if (isSelected)
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, size: 16, color: Colors.white),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  LinearGradient _getThemeGradient(AppTheme theme) {
+    switch (theme) {
+      case AppTheme.light:
+        return const LinearGradient(
+          colors: [Color(0xFF007AFF), Color(0xFF34C759)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case AppTheme.dark:
+        return const LinearGradient(
+          colors: [Color(0xFF1C1C1E), Color(0xFF000000)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case AppTheme.midnightBloom:
+        return const LinearGradient(
+          colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+    }
+  }
+
+  String _getThemeDescription(AppTheme theme) {
+    switch (theme) {
+      case AppTheme.light:
+        return 'Clean and bright interface for daytime use';
+      case AppTheme.dark:
+        return 'Easy on the eyes for low-light environments';
+      case AppTheme.midnightBloom:
+        return 'Mystical purple-pink theme with elegant blooms';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthNames = [
@@ -2096,6 +2377,27 @@ Return ONLY the JSON array with no additional text.
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         actions: [
+          IconButton(
+            onPressed: () => _showThemeSettingsBottomSheet(context),
+            icon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5856D6).withOpacity(0.1), // Purple theme
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFF5856D6).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                Icons.palette_outlined,
+                size: 18,
+                color: const Color(0xFF5856D6),
+              ),
+            ),
+            tooltip: 'Theme Settings',
+          ),
+          const SizedBox(width: 8),
           IconButton(
             onPressed: () => _showScduleMeBottomSheet(context),
             icon: Container(
