@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -215,6 +216,10 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     int selectedDayIndex,
     ScrollController scrollController,
     StateSetter setModalState,
+    bool isSelectionMode,
+    Set<int> selectedRoutineIds,
+    Function(ScheduleItem) toggleRoutineSelection,
+    VoidCallback toggleSelectionMode,
   ) {
     final dayLabels = [
       'Sunday',
@@ -295,6 +300,10 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                         dayRoutines[index],
                         index,
                         setModalState,
+                        isSelectionMode,
+                        selectedRoutineIds,
+                        toggleRoutineSelection,
+                        toggleSelectionMode,
                       );
                     },
                   ),
@@ -353,94 +362,154 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
     ScheduleItem routine,
     int index,
     StateSetter setModalState,
+    bool isSelectionMode,
+    Set<int> selectedRoutineIds,
+    Function(ScheduleItem) toggleRoutineSelection,
+    VoidCallback toggleSelectionMode,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            spreadRadius: 0,
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    final isSelected =
+        routine.id != null && selectedRoutineIds.contains(routine.id);
+
+    return GestureDetector(
+      onTap: isSelectionMode ? () => toggleRoutineSelection(routine) : null,
+      onLongPress: () {
+        if (!isSelectionMode) {
+          // Provide haptic feedback
+          HapticFeedback.mediumImpact();
+          // Enter selection mode and select this routine
+          toggleSelectionMode();
+          toggleRoutineSelection(routine);
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color:
+              isSelected
+                  ? const Color(0xFF5856D6).withOpacity(0.05)
+                  : Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color:
+                isSelected
+                    ? const Color(0xFF5856D6).withOpacity(0.3)
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+            width: isSelected ? 2 : 1,
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
-              children: [
-                Icon(Icons.repeat, size: 16, color: const Color(0xFF007AFF)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    routine.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => _showDeleteDialog(context, routine),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF3B30).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: Color(0xFFFF3B30),
-                    ),
-                  ),
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              spreadRadius: 0,
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            const SizedBox(height: 12),
-            // Time and duration chips
-            Row(
-              children: [
-                _buildInfoChip(
-                  context,
-                  Icons.access_time,
-                  _formatTimeToAmPm(routine.startTime),
-                  const Color(0xFF007AFF),
-                ),
-                const SizedBox(width: 8),
-                _buildInfoChip(
-                  context,
-                  Icons.timer_outlined,
-                  _calculateDuration(routine.startTime, routine.endTime),
-                  const Color(0xFF34C759),
-                ),
-              ],
-            ),
-            if (routine.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                routine.description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
           ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                children: [
+                  // Selection checkbox (only show in selection mode)
+                  if (isSelectionMode) ...[
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected
+                                ? const Color(0xFF5856D6)
+                                : Colors.transparent,
+                        border: Border.all(
+                          color:
+                              isSelected
+                                  ? const Color(0xFF5856D6)
+                                  : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child:
+                          isSelected
+                              ? const Icon(
+                                Icons.check,
+                                size: 16,
+                                color: Colors.white,
+                              )
+                              : null,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
+                  Icon(Icons.repeat, size: 16, color: const Color(0xFF007AFF)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      routine.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  // Individual delete button (only show when not in selection mode)
+                  if (!isSelectionMode)
+                    GestureDetector(
+                      onTap: () => _showDeleteDialog(context, routine),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF3B30).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          size: 16,
+                          color: Color(0xFFFF3B30),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Time and duration chips
+              Row(
+                children: [
+                  _buildInfoChip(
+                    context,
+                    Icons.access_time,
+                    _formatTimeToAmPm(routine.startTime),
+                    const Color(0xFF007AFF),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildInfoChip(
+                    context,
+                    Icons.timer_outlined,
+                    _calculateDuration(routine.startTime, routine.endTime),
+                    const Color(0xFF34C759),
+                  ),
+                ],
+              ),
+              if (routine.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  routine.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -564,6 +633,8 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
   void _showScduleMeBottomSheet(BuildContext context) {
     int selectedDayIndex =
         DateTime.now().weekday % 7; // 0=Sunday, 1=Monday, etc.
+    bool isSelectionMode = false;
+    Set<int> selectedRoutineIds = <int>{};
 
     showModalBottomSheet(
       context: context,
@@ -571,100 +642,278 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
       backgroundColor: Colors.transparent,
       builder:
           (context) => StatefulBuilder(
-            builder:
-                (context, setState) => DraggableScrollableSheet(
-                  initialChildSize: 0.8,
-                  minChildSize: 0.6,
-                  maxChildSize: 0.95,
-                  expand: false,
+            builder: (context, setState) {
+              // Helper function to toggle selection mode
+              void toggleSelectionMode() {
+                setState(() {
+                  isSelectionMode = !isSelectionMode;
+                  if (!isSelectionMode) {
+                    selectedRoutineIds.clear();
+                  }
+                });
+              }
+
+              // Helper function to toggle routine selection
+              void toggleRoutineSelection(ScheduleItem routine) {
+                if (routine.id != null) {
+                  setState(() {
+                    if (selectedRoutineIds.contains(routine.id)) {
+                      selectedRoutineIds.remove(routine.id);
+                    } else {
+                      selectedRoutineIds.add(routine.id!);
+                    }
+                  });
+                }
+              }
+
+              // Helper function to delete selected routines
+              void deleteSelectedRoutines() async {
+                if (selectedRoutineIds.isEmpty) return;
+
+                final confirmed = await showDialog<bool>(
+                  context: context,
                   builder:
-                      (context, scrollController) => Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
+                      (context) => AlertDialog(
+                        backgroundColor: Theme.of(context).cardColor,
+                        title: Text(
+                          'Delete Selected Routines',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            // Handle bar
-                            Container(
-                              margin: const EdgeInsets.only(top: 12),
-                              width: 36,
-                              height: 4,
-                              decoration: BoxDecoration(
+                        content: Text(
+                          'Are you sure you want to delete ${selectedRoutineIds.length} selected routine${selectedRoutineIds.length != 1 ? 's' : ''}? This action cannot be undone.',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(2),
+                                ).colorScheme.onSurface.withOpacity(0.7),
                               ),
                             ),
-                            const SizedBox(height: 20),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(color: Color(0xFFFF3B30)),
+                            ),
+                          ),
+                        ],
+                      ),
+                );
 
-                            // Header
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
+                if (confirmed == true) {
+                  for (final routineId in selectedRoutineIds) {
+                    await _databaseHelper.deleteRoutine(routineId);
+                  }
+                  await _loadRoutines();
+                  setState(() {
+                    selectedRoutineIds.clear();
+                    isSelectionMode = false;
+                  });
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Deleted ${selectedRoutineIds.length} routine${selectedRoutineIds.length != 1 ? 's' : ''}',
+                      ),
+                      backgroundColor: const Color(0xFFFF3B30),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+
+              return DraggableScrollableSheet(
+                initialChildSize: 0.8,
+                minChildSize: 0.6,
+                maxChildSize: 0.95,
+                expand: false,
+                builder:
+                    (context, scrollController) => Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Handle bar
+                          Container(
+                            margin: const EdgeInsets.only(top: 12),
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Header
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.repeat,
+                                  size: 24,
+                                  color: const Color(0xFF34C759),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'ScduleMe',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      size: 18,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Quick Actions Section (Horizontally Scrollable)
+                          Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
                               child: Row(
                                 children: [
-                                  Icon(
-                                    Icons.repeat,
-                                    size: 24,
-                                    color: const Color(0xFF34C759),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      'ScduleMe',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                  // Delete Selected Chip (only show when in selection mode and items are selected)
+                                  if (isSelectionMode &&
+                                      selectedRoutineIds.isNotEmpty) ...[
+                                    GestureDetector(
+                                      onTap: deleteSelectedRoutines,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFFF3B30,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(
+                                              0xFFFF3B30,
+                                            ).withOpacity(0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.delete_outline,
+                                              size: 16,
+                                              color: const Color(0xFFFF3B30),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Delete (${selectedRoutineIds.length})',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFFFF3B30),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  GestureDetector(
-                                    onTap: () => Navigator.pop(context),
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        size: 18,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
+                                    const SizedBox(width: 12),
+                                    // Exit Selection Mode Chip
+                                    GestureDetector(
+                                      onTap: toggleSelectionMode,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFF8E8E93,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(
+                                              0xFF8E8E93,
+                                            ).withOpacity(0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.close,
+                                              size: 16,
+                                              color: const Color(0xFF8E8E93),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Exit Select',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF8E8E93),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
+                                  ],
 
-                            // Quick Actions Section (Horizontally Scrollable)
-                            Container(
-                              height: 40,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                              ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
+                                  // Show normal chips only when not in selection mode
+                                  if (!isSelectionMode) ...[
                                     // Add Routine Chip
                                     GestureDetector(
                                       onTap:
@@ -801,38 +1050,44 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(
-                                      width: 20,
-                                    ), // Extra padding at the end
                                   ],
-                                ),
+                                  const SizedBox(
+                                    width: 20,
+                                  ), // Extra padding at the end
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 20),
+                          ),
+                          const SizedBox(height: 20),
 
-                            // Weekly Calendar for ScduleMe
-                            _buildWeeklyCalendar(context, selectedDayIndex, (
-                              dayIndex,
-                            ) {
-                              setState(() {
-                                selectedDayIndex = dayIndex;
-                              });
-                            }),
+                          // Weekly Calendar for ScduleMe
+                          _buildWeeklyCalendar(context, selectedDayIndex, (
+                            dayIndex,
+                          ) {
+                            setState(() {
+                              selectedDayIndex = dayIndex;
+                            });
+                          }),
 
-                            const SizedBox(height: 20),
-                            // Day's Routines Section
-                            Expanded(
-                              child: _buildDayRoutinesSection(
-                                context,
-                                selectedDayIndex,
-                                scrollController,
-                                setState,
-                              ),
+                          const SizedBox(height: 20),
+                          // Day's Routines Section
+                          Expanded(
+                            child: _buildDayRoutinesSection(
+                              context,
+                              selectedDayIndex,
+                              scrollController,
+                              setState,
+                              isSelectionMode,
+                              selectedRoutineIds,
+                              toggleRoutineSelection,
+                              toggleSelectionMode,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                ),
+                    ),
+              );
+            },
           ),
     );
   }
