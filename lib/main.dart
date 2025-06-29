@@ -914,54 +914,6 @@ class _ScheduleHomePageState extends State<ScheduleHomePage> {
 
                                   // Show normal chips only when not in selection mode
                                   if (!isSelectionMode) ...[
-                                    // Add Routine Chip
-                                    GestureDetector(
-                                      onTap:
-                                          () => _showAddRoutineBottomSheet(
-                                            context,
-                                          ),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(
-                                            0xFF34C759,
-                                          ).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color: const Color(
-                                              0xFF34C759,
-                                            ).withOpacity(0.3),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.add,
-                                              size: 16,
-                                              color: const Color(0xFF34C759),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              'Add Routine',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: const Color(0xFF34C759),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-
                                     // AI Chip
                                     GestureDetector(
                                       onTap: () => _showAIBottomSheet(context),
