@@ -37,26 +37,28 @@ class _AnalyticsPageNewState extends State<AnalyticsPageNew>
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: CustomScrollView(
         slivers: [
-          // App Bar with Tabs
+          // App Bar with Tabs - X-style
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: cs.surface,
+            backgroundColor: cs.surfaceContainerLowest, // Pure black
+            surfaceTintColor: Colors.transparent,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: cs.onSurface),
               onPressed: () => Navigator.pop(context),
             ),
             flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 56, bottom: 48),
               title: Text(
                 'Analytics Dashboard',
                 style: TextStyle(
                   color: cs.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                  fontWeight: FontWeight.w700, // X-style bold
+                  fontSize: 22,
                 ),
               ),
               background: Container(
@@ -65,9 +67,9 @@ class _AnalyticsPageNewState extends State<AnalyticsPageNew>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      cs.primaryContainer,
-                      cs.secondaryContainer,
-                      cs.tertiaryContainer,
+                      cs.primary.withOpacity(0.15), // Twitter blue
+                      cs.secondary.withOpacity(0.1), // Pink
+                      cs.tertiary.withOpacity(0.08), // Purple
                     ],
                   ),
                 ),

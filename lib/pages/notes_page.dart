@@ -320,15 +320,16 @@ Time management is getting better. Need to maintain consistency.''',
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: CustomScrollView(
         slivers: [
-          // App Bar
+          // App Bar - X-style
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: cs.surface,
+            backgroundColor: cs.surfaceContainerLowest, // Pure black
+            surfaceTintColor: Colors.transparent,
             leading: (_selectedCategoryId != null || _folderPath.isNotEmpty)
                 ? IconButton(
                     icon: Icon(Icons.arrow_back, color: cs.onSurface),

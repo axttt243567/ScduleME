@@ -224,10 +224,11 @@ class _CreateEventPageState extends State<CreateEventPage> {
     final isEditing = widget.editEvent != null;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         title: Text(isEditing ? 'Edit Event' : 'Create Event'),
         actions: [
           TextButton.icon(

@@ -57,9 +57,10 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
     filteredEvents.sort((a, b) => b.startDate.compareTo(a.startDate));
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
-        backgroundColor: cs.surface,
+        backgroundColor: cs.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: cs.onSurface),

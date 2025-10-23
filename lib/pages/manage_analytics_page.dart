@@ -28,9 +28,10 @@ class _ManageAnalyticsPageState extends State<ManageAnalyticsPage> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
-        backgroundColor: cs.surface,
+        backgroundColor: cs.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: cs.onSurface),

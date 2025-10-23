@@ -349,17 +349,19 @@ Today was productive. Completed most of my tasks.
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: CustomScrollView(
         slivers: [
-          // App Bar with gradient
+          // App Bar - X-style minimal
           SliverAppBar(
-            expandedHeight: 140,
+            expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: cs.surface,
+            backgroundColor: cs.surfaceContainerLowest, // Pure black
+            surfaceTintColor: Colors.transparent,
             leading: (_selectedCategoryId != null || _folderPath.isNotEmpty)
                 ? IconButton(
                     icon: Icon(Icons.arrow_back, color: cs.onSurface),
@@ -367,14 +369,13 @@ Today was productive. Completed most of my tasks.
                   )
                 : null,
             flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
               title: Text(
                 _selectedCategoryId != null
                     ? Categories.getById(_selectedCategoryId!).name
                     : 'My Notes',
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontSize: 24, // X-style bold title
                 ),
               ),
               background: Container(
@@ -383,9 +384,9 @@ Today was productive. Completed most of my tasks.
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      cs.primaryContainer,
-                      cs.secondaryContainer,
-                      cs.tertiaryContainer,
+                      cs.primary.withOpacity(0.15), // Twitter blue hint
+                      cs.secondary.withOpacity(0.1), // Pink hint
+                      cs.tertiary.withOpacity(0.1), // Purple hint
                     ],
                   ),
                 ),

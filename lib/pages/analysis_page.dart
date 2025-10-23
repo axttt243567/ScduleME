@@ -31,15 +31,16 @@ class AnalysisPage extends StatelessWidget {
         .length;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: CustomScrollView(
         slivers: [
-          // App Bar
+          // App Bar - X-style
           SliverAppBar(
             expandedHeight: 120,
             floating: false,
             pinned: true,
-            backgroundColor: cs.surface,
+            backgroundColor: cs.surfaceContainerLowest, // Pure black
+            surfaceTintColor: Colors.transparent,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: cs.onSurface),
               onPressed: () => Navigator.pop(context),

@@ -13,46 +13,46 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: CustomScrollView(
         slivers: [
-          // App Bar with Profile Header
+          // App Bar with Profile Header - X-style
           SliverAppBar(
-            expandedHeight: 220,
+            expandedHeight: 200,
             floating: false,
             pinned: true,
-            backgroundColor: cs.surface,
+            backgroundColor: cs.surfaceContainerLowest, // Pure black
+            surfaceTintColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: false,
               titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
               title: Text(
                 'Alex Morgan',
-                style: TextStyle(
-                  color: cs.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontSize: 22, // X-style bold
                 ),
               ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Background gradient
+                  // Background gradient - X-style minimal
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          cs.primaryContainer,
-                          cs.secondaryContainer,
-                          cs.tertiaryContainer,
+                          cs.primary.withOpacity(0.15), // Twitter blue
+                          cs.secondary.withOpacity(0.1), // Pink
+                          cs.tertiary.withOpacity(0.08), // Purple
                         ],
                       ),
                     ),
                   ),
-                  // Decorative circles
+                  // Decorative circles - more subtle
                   Positioned(
                     top: -50,
                     right: -50,
@@ -61,7 +61,7 @@ class ProfilePage extends StatelessWidget {
                       height: 200,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: cs.primary.withOpacity(0.1),
+                        color: cs.primary.withOpacity(0.05), // Very subtle
                       ),
                     ),
                   ),

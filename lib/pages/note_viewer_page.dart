@@ -13,9 +13,10 @@ class NoteViewerPage extends StatelessWidget {
     final category = Categories.getById(note.categoryId);
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
-        backgroundColor: cs.surface,
+        backgroundColor: cs.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: cs.onSurface),

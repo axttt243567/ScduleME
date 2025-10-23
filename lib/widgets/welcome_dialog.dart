@@ -144,16 +144,17 @@ class WelcomeDialog extends StatelessWidget {
         if (context.mounted) {
           Navigator.pop(context); // Close loading dialog
 
+          final cs = Theme.of(context).colorScheme;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Row(
+              content: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text('Sample events added! Explore the app.'),
+                  Icon(Icons.check_circle, color: cs.onSurface),
+                  const SizedBox(width: 12),
+                  const Text('Sample events added! Explore the app.'),
                 ],
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: const Color(0xFF00BA7C), // X-style green
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 3),
             ),

@@ -24,13 +24,14 @@ class _CategoryAnalyticsPageState extends State<CategoryAnalyticsPage> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: cs.surfaceContainerLowest, // Pure black X-style
       body: Consumer<EventProvider>(
         builder: (context, eventProvider, _) {
           final allCategoryEvents = eventProvider.events
               .where((e) => e.categoryIds.contains(widget.category.id))
               .toList();
 
+          // Filter by selected month
           final monthEvents = allCategoryEvents.where((e) {
             return e.startDate.year == _selectedMonth.year &&
                 e.startDate.month == _selectedMonth.month;
@@ -38,12 +39,15 @@ class _CategoryAnalyticsPageState extends State<CategoryAnalyticsPage> {
 
           return CustomScrollView(
             slivers: [
-              // App Bar
+              // App Bar - X-style
               SliverAppBar(
                 expandedHeight: 180,
                 floating: false,
                 pinned: true,
-                backgroundColor: widget.category.color,
+                backgroundColor: widget.category.color.withOpacity(
+                  0.3,
+                ), // Subtle color
+                surfaceTintColor: Colors.transparent,
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
                   onPressed: () => Navigator.pop(context),

@@ -146,15 +146,21 @@ class _FloatingNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Theme-based colors - no hardcoded values
-    final bg = cs.secondaryContainer;
-    final selected = cs.onSecondaryContainer;
-    final unselected = cs.onSurfaceVariant;
+    // X-style minimal nav bar
+    final bg = cs.surfaceContainerHigh; // Dark surface
+    final selected = cs.primary; // Twitter blue
+    final unselected = cs.onSurfaceVariant; // Muted gray
 
     return Material(
-      elevation: 6,
-      color: bg, // Use theme color directly instead of transparent
-      shape: const StadiumBorder(),
+      elevation: 0, // Flat like X
+      color: bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(32), // X-style rounded pill
+        side: BorderSide(
+          color: cs.outline.withOpacity(0.3), // Subtle border
+          width: 0.5,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(

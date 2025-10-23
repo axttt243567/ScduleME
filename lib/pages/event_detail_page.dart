@@ -86,10 +86,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
         : Categories.other;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         title: Text('Event Details', style: theme.textTheme.titleLarge),
         actions: [
           IconButton(

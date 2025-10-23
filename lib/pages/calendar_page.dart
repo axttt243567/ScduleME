@@ -82,17 +82,21 @@ class _CalendarPageState extends State<CalendarPage> {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLowest, // Pure black X-style
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
+        surfaceTintColor: Colors.transparent,
         toolbarHeight: 56,
         title: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              Text('Calendar', style: theme.textTheme.titleLarge),
+              Text(
+                'Calendar',
+                style: theme.textTheme.headlineMedium,
+              ), // X-style bold title
               const SizedBox(width: 12),
               // View mode filter chips
               FilterChip(

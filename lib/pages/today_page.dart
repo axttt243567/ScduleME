@@ -59,12 +59,12 @@ class _TodayPageState extends State<TodayPage> {
     final now = DateTime.now();
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: colorScheme.surfaceContainerLowest, // Pure black AMOLED
       appBar: AppBar(
         elevation: 0,
-        scrolledUnderElevation: 3,
-        surfaceTintColor: colorScheme.surfaceTint,
-        backgroundColor: Colors.black,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
         toolbarHeight: 80,
         titleSpacing: 0,
         centerTitle: false,
@@ -281,10 +281,17 @@ class _EventTimelineCardState extends State<_EventTimelineCard> {
       curve: Curves.easeInOut,
       child: Card(
         elevation: 0,
-        color: isHappening
-            ? colorScheme.primaryContainer.withOpacity(0.2)
-            : colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLowest, // Pure black X-style
         clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16), // X-style subtle rounding
+          side: BorderSide(
+            color: isHappening
+                ? colorScheme.primary.withOpacity(0.5) // Twitter blue glow
+                : colorScheme.outline, // X-style border
+            width: isHappening ? 1.5 : 0.5,
+          ),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -292,7 +299,7 @@ class _EventTimelineCardState extends State<_EventTimelineCard> {
             InkWell(
               onTap: _toggleState,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16), // X-style padding
                 child: _buildContent(theme, colorScheme, category, isHappening),
               ),
             ),
