@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'super_amoled_theme.dart';
 import 'providers/event_provider.dart';
+import 'providers/api_key_provider.dart';
 import 'pages/today_page.dart';
 import 'pages/calendar_page.dart';
 import 'pages/enhanced_notes_page.dart';
@@ -17,8 +18,11 @@ class StudentApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => EventProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => EventProvider()),
+        ChangeNotifierProvider(create: (_) => ApiKeyProvider()..initialize()),
+      ],
       child: MaterialApp(
         title: 'ScheduleMe — Student',
         debugShowCheckedModeBanner: false,

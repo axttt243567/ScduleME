@@ -51,6 +51,15 @@ dependencies:
   
   # Calendar UI
   table_calendar: ^3.0.9
+  
+  # AI Integration
+  google_generative_ai: ^0.4.0
+  
+  # Secure Storage
+  flutter_secure_storage: ^9.0.0
+  
+  # HTTP requests
+  http: ^1.1.0
 
 dev_dependencies:
   flutter_test:

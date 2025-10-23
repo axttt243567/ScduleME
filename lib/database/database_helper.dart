@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/event.dart';
+import '../models/api_key.dart';
 
 /// Database helper for event management
 class DatabaseHelper {
@@ -21,7 +22,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Incremented version for API keys table
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -57,14 +58,52 @@ class DatabaseHelper {
       )
     ''');
 
+    // Create API keys table
+    await db.execute('''
+      CREATE TABLE api_keys (
+        id $idType,
+        name $textType,
+        keyValue $textType,
+        isActive $intType,
+        createdAt $textType,
+        lastUsedAt $nullableTextType,
+        lastValidatedAt $nullableTextType,
+        isValid $nullableIntType
+      )
+    ''');
+
     // Create indexes for better query performance
     await db.execute('CREATE INDEX idx_startDate ON events(startDate)');
     await db.execute('CREATE INDEX idx_priority ON events(priority)');
     await db.execute('CREATE INDEX idx_remark ON events(remark)');
+    await db.execute('CREATE INDEX idx_api_isActive ON api_keys(isActive)');
   }
 
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     // Handle database migrations here if schema changes in future
+    if (oldVersion < 2) {
+      // Add API keys table
+      const idType = 'TEXT PRIMARY KEY';
+      const textType = 'TEXT NOT NULL';
+      const intType = 'INTEGER NOT NULL';
+      const nullableIntType = 'INTEGER';
+      const nullableTextType = 'TEXT';
+
+      await db.execute('''
+        CREATE TABLE api_keys (
+          id $idType,
+          name $textType,
+          keyValue $textType,
+          isActive $intType,
+          createdAt $textType,
+          lastUsedAt $nullableTextType,
+          lastValidatedAt $nullableTextType,
+          isValid $nullableIntType
+        )
+      ''');
+
+      await db.execute('CREATE INDEX idx_api_isActive ON api_keys(isActive)');
+    }
   }
 
   /// Create a new event
@@ -256,5 +295,101 @@ class DatabaseHelper {
   Future<void> close() async {
     final db = await instance.database;
     await db.close();
+  }
+
+  // ==================== API KEYS CRUD OPERATIONS ====================
+
+  /// Create a new API key
+  Future<ApiKey> createApiKey(ApiKey apiKey) async {
+    final db = await instance.database;
+
+    // Generate ID if not provided
+    final id = apiKey.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+    final apiKeyWithId = apiKey.copyWith(id: id);
+
+    await db.insert('api_keys', apiKeyWithId.toMap());
+    return apiKeyWithId;
+  }
+
+  /// Read API key by ID
+  Future<ApiKey?> readApiKey(String id) async {
+    final db = await instance.database;
+
+    final maps = await db.query('api_keys', where: 'id = ?', whereArgs: [id]);
+
+    if (maps.isEmpty) {
+      return null;
+    }
+
+    return ApiKey.fromMap(maps.first);
+  }
+
+  /// Read all API keys
+  Future<List<ApiKey>> readAllApiKeys() async {
+    final db = await instance.database;
+
+    const orderBy = 'createdAt DESC';
+    final result = await db.query('api_keys', orderBy: orderBy);
+
+    return result.map((map) => ApiKey.fromMap(map)).toList();
+  }
+
+  /// Read active API key
+  Future<ApiKey?> readActiveApiKey() async {
+    final db = await instance.database;
+
+    final result = await db.query(
+      'api_keys',
+      where: 'isActive = ?',
+      whereArgs: [1],
+      limit: 1,
+    );
+
+    if (result.isEmpty) {
+      return null;
+    }
+
+    return ApiKey.fromMap(result.first);
+  }
+
+  /// Update an API key
+  Future<int> updateApiKey(ApiKey apiKey) async {
+    final db = await instance.database;
+
+    return db.update(
+      'api_keys',
+      apiKey.toMap(),
+      where: 'id = ?',
+      whereArgs: [apiKey.id],
+    );
+  }
+
+  /// Set active API key (deactivates all others)
+  Future<void> setActiveApiKey(String id) async {
+    final db = await instance.database;
+
+    // Deactivate all keys first
+    await db.update('api_keys', {'isActive': 0});
+
+    // Activate the selected key
+    await db.update(
+      'api_keys',
+      {'isActive': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  /// Delete an API key
+  Future<int> deleteApiKey(String id) async {
+    final db = await instance.database;
+
+    return await db.delete('api_keys', where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Delete all API keys
+  Future<int> deleteAllApiKeys() async {
+    final db = await instance.database;
+    return await db.delete('api_keys');
   }
 }

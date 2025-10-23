@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/event_provider.dart';
+import '../providers/api_key_provider.dart';
+import 'api_configuration_page.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -13,15 +15,12 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
   final _nameController = TextEditingController(text: 'Alex Morgan');
   final _emailController = TextEditingController(text: 'alex.morgan@email.com');
   final _dobController = TextEditingController(text: '01/15/1995');
-  final _apiKeyController = TextEditingController();
-  bool _isPasswordVisible = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _dobController.dispose();
-    _apiKeyController.dispose();
     super.dispose();
   }
 
@@ -472,7 +471,7 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
                 const SizedBox(height: 32),
 
-                // API Key Storage Section
+                // API Configuration Section
                 _SectionHeader(
                   title: 'API Configuration',
                   icon: Icons.key,
@@ -480,74 +479,27 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ),
                 const SizedBox(height: 16),
 
-                TextField(
-                  controller: _apiKeyController,
-                  obscureText: !_isPasswordVisible,
-                  style: TextStyle(color: cs.onSurface),
-                  decoration: InputDecoration(
-                    labelText: 'API Key',
-                    labelStyle: TextStyle(color: cs.onSurfaceVariant),
-                    hintText: 'Enter your API key',
-                    hintStyle: TextStyle(
-                      color: cs.onSurfaceVariant.withOpacity(0.5),
-                    ),
-                    prefixIcon: Icon(Icons.vpn_key, color: cs.secondary),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: cs.secondary,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
+                Consumer<ApiKeyProvider>(
+                  builder: (context, apiKeyProvider, child) {
+                    return _SettingsCard(
+                      icon: Icons.vpn_key,
+                      title: 'Gemini API Keys',
+                      subtitle: apiKeyProvider.hasActiveKey
+                          ? '${apiKeyProvider.totalKeys} key(s) • Active key configured'
+                          : apiKeyProvider.totalKeys > 0
+                          ? '${apiKeyProvider.totalKeys} key(s) • No active key'
+                          : 'Manage your Gemini API keys',
+                      color: cs.secondaryContainer,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ApiConfigurationPage(),
+                          ),
+                        );
                       },
-                    ),
-                    filled: true,
-                    fillColor: cs.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: cs.outline),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: cs.secondary, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Text(
-                  'Store your API keys securely for integration with third-party services',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-                ),
-
-                const SizedBox(height: 16),
-
-                FilledButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('API key saved securely'),
-                        backgroundColor: cs.secondary,
-                      ),
                     );
                   },
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save API Key'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: cs.secondary,
-                    padding: const EdgeInsets.all(16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 32),
