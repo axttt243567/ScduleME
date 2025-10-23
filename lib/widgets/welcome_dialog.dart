@@ -17,7 +17,7 @@ class WelcomeDialog extends StatelessWidget {
         children: [
           Icon(Icons.celebration, color: colorScheme.primary),
           const SizedBox(width: 12),
-          const Text('Welcome to ScheduleMe!'),
+          const Expanded(child: Text('Welcome to ScheduleMe!')),
         ],
       ),
       content: Column(

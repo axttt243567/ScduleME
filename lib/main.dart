@@ -4,7 +4,7 @@ import 'super_amoled_theme.dart';
 import 'providers/event_provider.dart';
 import 'pages/today_page.dart';
 import 'pages/calendar_page.dart';
-import 'pages/notes_page.dart';
+import 'pages/enhanced_notes_page.dart';
 import 'pages/profile_page.dart';
 import 'widgets/welcome_dialog.dart';
 
@@ -46,7 +46,7 @@ class _AppShellState extends State<AppShell> {
   final _pages = const [
     TodayPage(), // New event-powered today page
     CalendarPage(), // New event-powered calendar page
-    NotesPage(), // New notes page with folders and categories
+    EnhancedNotesPage(), // Enhanced notes page with dual sections
     ProfilePage(), // Profile page with management options
   ];
 

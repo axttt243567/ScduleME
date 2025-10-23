@@ -163,4 +163,24 @@ class EventProvider with ChangeNotifier {
     );
     await updateEvent(updatedEvent);
   }
+
+  /// Clear all data - wipe everything and reset to fresh state
+  Future<void> clearAllData() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Clear database
+      await _dbHelper.clearAllData();
+
+      // Clear in-memory events
+      _events.clear();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

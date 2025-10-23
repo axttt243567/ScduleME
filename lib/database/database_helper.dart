@@ -228,6 +228,30 @@ class DatabaseHelper {
     return result.map((map) => Event.fromMap(map)).toList();
   }
 
+  /// Clear all data - delete database file and reset instance
+  Future<void> clearAllData() async {
+    try {
+      // Close database if open
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
+
+      // Delete database file
+      final dbPath = await getDatabasesPath();
+      final path = join(dbPath, 'events.db');
+
+      // Delete the database file
+      await deleteDatabase(path);
+    } catch (e) {
+      // If error occurs, try to at least delete all records
+      if (_database != null) {
+        await _database!.delete('events');
+      }
+      rethrow;
+    }
+  }
+
   /// Close database
   Future<void> close() async {
     final db = await instance.database;

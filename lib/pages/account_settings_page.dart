@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/event_provider.dart';
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -202,22 +204,96 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
             child: Text('Cancel', style: TextStyle(color: cs.onSurface)),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // Implement data clearing logic here
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('All data has been cleared'),
-                  backgroundColor: cs.error,
-                ),
-              );
-            },
+            onPressed: () => _confirmClearData(),
             style: FilledButton.styleFrom(backgroundColor: cs.error),
             child: Text('Clear All', style: TextStyle(color: cs.onError)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmClearData() async {
+    Navigator.pop(context); // Close confirmation dialog
+
+    final cs = Theme.of(context).colorScheme;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: cs.surfaceContainerHigh,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: cs.error),
+              const SizedBox(height: 24),
+              Text(
+                'Clearing all data...',
+                style: TextStyle(color: cs.onSurface, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please wait',
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Clear all data from database
+      final eventProvider = context.read<EventProvider>();
+      await eventProvider.clearAllData();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        // Navigate back to home and show success message
+        Navigator.of(context).popUntil((route) => route.isFirst);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: cs.onError),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('All data has been cleared successfully!'),
+                ),
+              ],
+            ),
+            backgroundColor: cs.error,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: cs.onError),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Error clearing data: ${e.toString()}')),
+              ],
+            ),
+            backgroundColor: cs.error,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
   }
 
   @override
