@@ -5,6 +5,7 @@ import 'analytics_page_new.dart';
 import 'manage_analytics_page.dart';
 import 'account_settings_page.dart';
 import 'privacy_security_page.dart';
+import 'ai_event_creator_page.dart';
 import '../main.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -267,6 +268,22 @@ class ProfilePage extends StatelessWidget {
                   title: 'AI Assistant',
                   icon: Icons.auto_awesome,
                   color: cs.tertiary,
+                ),
+                const SizedBox(height: 12),
+
+                _ProfileCard(
+                  icon: Icons.event_available,
+                  title: 'Create Events with AI',
+                  subtitle: 'Let AI help you create and schedule events',
+                  color: cs.tertiaryContainer.withOpacity(0.9),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AiEventCreatorPage(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
 
