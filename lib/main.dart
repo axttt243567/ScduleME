@@ -8,6 +8,7 @@ import 'pages/calendar_page.dart';
 import 'pages/enhanced_notes_page.dart';
 import 'pages/profile_page.dart';
 import 'widgets/welcome_dialog.dart';
+import 'utils/gemini_service.dart';
 
 void main() {
   runApp(const StudentApp());
@@ -2474,118 +2475,830 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 }
 
-// AI Assist (frontend only) - All styling from theme
-class AiAssistScreen extends StatelessWidget {
+// AI Assist - Modern Chat interface with Gemini 2.5 Flash
+class AiAssistScreen extends StatefulWidget {
   const AiAssistScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AI Assist')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Quick Suggestions',
-            style: Theme.of(context).textTheme.titleLarge,
+  State<AiAssistScreen> createState() => _AiAssistScreenState();
+}
+
+class _AiAssistScreenState extends State<AiAssistScreen>
+    with SingleTickerProviderStateMixin {
+  final List<ChatMessage> _messages = [];
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+  bool _isLoading = false;
+  bool _showSuggestions = true;
+  late AnimationController _fabAnimationController;
+
+  final List<String> _quickPrompts = [
+    '📚 Help me study for an exam',
+    '✍️ Explain this concept simply',
+    '🔍 Summarize this topic',
+    '💡 Give me study tips',
+    '📝 Create a study plan',
+    '🎯 Quiz me on this subject',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fabAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final isAtBottom =
+          _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 50;
+      if (isAtBottom && _fabAnimationController.isCompleted) {
+        _fabAnimationController.reverse();
+      } else if (!isAtBottom && !_fabAnimationController.isCompleted) {
+        _fabAnimationController.forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    _focusNode.dispose();
+    _fabAnimationController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom({bool animated = true}) {
+    if (_scrollController.hasClients) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (animated) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
+  }
+
+  Future<void> _sendMessage([String? customMessage]) async {
+    final messageText = customMessage ?? _messageController.text.trim();
+    if (messageText.isEmpty) return;
+
+    // Check if user has an active API key
+    final apiKeyProvider = Provider.of<ApiKeyProvider>(context, listen: false);
+    if (!apiKeyProvider.hasActiveKey) {
+      _showNoApiKeyDialog();
+      return;
+    }
+
+    // Hide suggestions after first message
+    if (_showSuggestions) {
+      setState(() => _showSuggestions = false);
+    }
+
+    // Add user message with animation
+    setState(() {
+      _messages.add(
+        ChatMessage(text: messageText, isUser: true, timestamp: DateTime.now()),
+      );
+      _isLoading = true;
+    });
+    _messageController.clear();
+    _scrollToBottom();
+
+    try {
+      // Generate AI response using Gemini 2.5 Flash
+      final response = await GeminiService.generateContent(
+        apiKey: apiKeyProvider.activeApiKey!.keyValue,
+        prompt: messageText,
+        model: 'gemini-2.0-flash-exp',
+      );
+
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            text: response ?? 'Sorry, I couldn\'t generate a response.',
+            isUser: false,
+            timestamp: DateTime.now(),
           ),
-          const SizedBox(height: 8),
-          // ActionChips use theme styling
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ActionChip(
-                avatar: const Icon(Icons.summarize),
-                label: const Text('Summarize from Link'),
-                onPressed: () {},
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.picture_as_pdf),
-                label: const Text('Summarize PDF'),
-                onPressed: () {},
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.ondemand_video),
-                label: const Text('Summarize YouTube'),
-                onPressed: () {},
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.highlight),
-                label: const Text('Extract Highlights'),
-                onPressed: () {},
-              ),
-            ],
+        );
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      setState(() {
+        _messages.add(
+          ChatMessage(
+            text: 'Error: ${e.toString()}',
+            isUser: false,
+            timestamp: DateTime.now(),
+            isError: true,
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Personalization',
-            style: Theme.of(context).textTheme.titleMedium,
+        );
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    }
+  }
+
+  void _showNoApiKeyDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.key_off,
+          size: 48,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: const Text('No API Key'),
+        content: const Text(
+          'Please add and activate a Gemini API key in your profile settings to use AI chat.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 8),
-          // FilterChips use theme styling
-          Wrap(
-            spacing: 8,
-            children: [
-              FilterChip(
-                label: const Text('Concise'),
-                selected: true,
-                onSelected: (_) {},
-              ),
-              FilterChip(
-                label: const Text('Academic'),
-                selected: false,
-                onSelected: (_) {},
-              ),
-              FilterChip(
-                label: const Text('Keep citations'),
-                selected: true,
-                onSelected: (_) {},
-              ),
-              FilterChip(
-                label: const Text('Add examples'),
-                selected: false,
-                onSelected: (_) {},
-              ),
-              FilterChip(
-                label: const Text('Flashcards'),
-                selected: false,
-                onSelected: (_) {},
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // FilledButton uses theme styling
-          FilledButton.icon(
-            onPressed: () => _showAiInputSheet(context),
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Start'),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context); // Go back to profile
+            },
+            child: const Text('Go to Settings'),
           ),
         ],
       ),
     );
   }
 
-  void _showAiInputSheet(BuildContext context) {
-    showModalBottomSheet(
+  void _clearChat() {
+    showDialog(
       context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('Source'),
-            SizedBox(height: 8),
-            // TextField uses theme (16px radius)
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Paste link / pick file (mock)',
-                // No border override - uses theme
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Chat?'),
+        content: const Text(
+          'This will delete all messages in this conversation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              setState(() {
+                _messages.clear();
+                _showSuggestions = true;
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _copyMessage(String text) {
+    // In a real app, use clipboard package
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Message copied to clipboard'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
+      ),
+    );
+  }
+
+  void _regenerateResponse() {
+    if (_messages.length < 2) return;
+
+    // Remove last AI response and regenerate
+    setState(() {
+      _messages.removeLast();
+    });
+
+    final lastUserMessage = _messages.last.text;
+    setState(() {
+      _messages.removeLast();
+    });
+
+    _sendMessage(lastUserMessage);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.auto_awesome,
+                size: 20,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
               ),
             ),
-            SizedBox(height: 12),
-            Text('This is a frontend-only prototype. No data is uploaded.'),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('AI Assistant'),
+                Text(
+                  'Powered by Gemini 2.5',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.normal),
+                ),
+              ],
+            ),
           ],
+        ),
+        actions: [
+          if (_messages.isNotEmpty && !_isLoading)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) {
+                switch (value) {
+                  case 'clear':
+                    _clearChat();
+                    break;
+                  case 'regenerate':
+                    _regenerateResponse();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'regenerate',
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh),
+                      SizedBox(width: 12),
+                      Text('Regenerate last'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'clear',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline),
+                      SizedBox(width: 12),
+                      Text('Clear chat'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Chat messages
+          Expanded(
+            child: _messages.isEmpty
+                ? _buildEmptyState()
+                : Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          return ChatMessageWidget(
+                            message: _messages[index],
+                            onCopy: () => _copyMessage(_messages[index].text),
+                          );
+                        },
+                      ),
+                      // Scroll to bottom FAB
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: ScaleTransition(
+                          scale: CurvedAnimation(
+                            parent: _fabAnimationController,
+                            curve: Curves.easeInOut,
+                          ),
+                          child: FloatingActionButton.small(
+                            onPressed: () => _scrollToBottom(),
+                            child: const Icon(Icons.arrow_downward),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          // Loading indicator with animation
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: _isLoading ? 40 : 0,
+            child: _isLoading
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'AI is thinking...',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          // Input field with modern design
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -3),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: SafeArea(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 120),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              focusNode: _focusNode,
+                              decoration: const InputDecoration(
+                                hintText: 'Ask me anything...',
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                              ),
+                              maxLines: null,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _sendMessage(),
+                            ),
+                          ),
+                          // Attachment button (placeholder for future feature)
+                          IconButton(
+                            icon: Icon(
+                              Icons.attach_file,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('File attachment coming soon!'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Send button with animation
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    child: FilledButton(
+                      onPressed: _isLoading ? null : () => _sendMessage(),
+                      style: FilledButton.styleFrom(
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(16),
+                      ),
+                      child: Icon(
+                        _isLoading ? Icons.stop : Icons.send_rounded,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 40),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primaryContainer,
+                  Theme.of(context).colorScheme.secondaryContainer,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_awesome,
+              size: 64,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'AI Study Assistant',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Ask questions, get explanations, or chat about any topic',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          if (_showSuggestions) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Try these prompts:',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ..._quickPrompts.map(
+              (prompt) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () => _sendMessage(prompt),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            prompt,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// Chat message model
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final DateTime timestamp;
+  final bool isError;
+
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    required this.timestamp,
+    this.isError = false,
+  });
+}
+
+// Modern chat message widget with interactions
+class ChatMessageWidget extends StatefulWidget {
+  final ChatMessage message;
+  final VoidCallback? onCopy;
+
+  const ChatMessageWidget({super.key, required this.message, this.onCopy});
+
+  @override
+  State<ChatMessageWidget> createState() => _ChatMessageWidgetState();
+}
+
+class _ChatMessageWidgetState extends State<ChatMessageWidget>
+    with SingleTickerProviderStateMixin {
+  bool _showActions = false;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _scaleAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  String _formatTime(DateTime timestamp) {
+    final hour = timestamp.hour.toString().padLeft(2, '0');
+    final minute = timestamp.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onLongPress: () {
+        setState(() => _showActions = !_showActions);
+        if (_showActions) {
+          _animationController.forward();
+        } else {
+          _animationController.reverse();
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: widget.message.isUser
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: widget.message.isUser
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!widget.message.isUser) ...[
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: widget.message.isError
+                          ? null
+                          : LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.secondary,
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                      color: widget.message.isError
+                          ? Theme.of(context).colorScheme.error
+                          : null,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      widget.message.isError
+                          ? Icons.error_outline
+                          : Icons.auto_awesome,
+                      size: 16,
+                      color: widget.message.isError
+                          ? Theme.of(context).colorScheme.onError
+                          : Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: widget.message.isUser
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: widget.message.isUser
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : widget.message.isError
+                              ? Theme.of(context).colorScheme.errorContainer
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(
+                              widget.message.isUser ? 20 : 4,
+                            ),
+                            bottomRight: Radius.circular(
+                              widget.message.isUser ? 4 : 20,
+                            ),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.message.text,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: widget.message.isUser
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimaryContainer
+                                        : widget.message.isError
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onErrorContainer
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    height: 1.5,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          _formatTime(widget.message.timestamp),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.5),
+                                fontSize: 11,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.message.isUser) ...[
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    child: Icon(
+                      Icons.person,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            // Action buttons (copy, etc.)
+            if (_showActions && !widget.message.isUser)
+              ScaleTransition(
+                scale: _scaleAnimation,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 40, top: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ActionButton(
+                        icon: Icons.content_copy,
+                        label: 'Copy',
+                        onPressed: widget.onCopy,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Action button widget for message interactions
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSecondaryContainer,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
