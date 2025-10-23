@@ -60,88 +60,6 @@ class _TodayPageState extends State<TodayPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest, // Pure black AMOLED
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
-        toolbarHeight: 80,
-        titleSpacing: 0,
-        centerTitle: false,
-        flexibleSpace: SafeArea(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Today text - tap to return to today
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedDate = now;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      'Today',
-                      style: theme.textTheme.displaySmall?.copyWith(
-                        color: _isToday(_selectedDate)
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                // Day chips for the next 6 days
-                for (int i = 1; i <= 6; i++)
-                  Builder(
-                    builder: (context) {
-                      final date = now.add(Duration(days: i));
-                      final isSelected =
-                          _selectedDate.year == date.year &&
-                          _selectedDate.month == date.month &&
-                          _selectedDate.day == date.day;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          label: Text(_getDayName(date.weekday)),
-                          labelStyle: theme.textTheme.labelLarge?.copyWith(
-                            color: isSelected
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurface,
-                          ),
-                          side: BorderSide.none,
-                          backgroundColor: isSelected
-                              ? colorScheme.primaryContainer
-                              : colorScheme.surfaceContainerHigh,
-                          shape: const StadiumBorder(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _selectedDate = date;
-                            });
-                          },
-                        ),
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
       body: Consumer<EventProvider>(
         builder: (context, eventProvider, child) {
           if (eventProvider.isLoading) {
@@ -178,45 +96,138 @@ class _TodayPageState extends State<TodayPage> {
 
           final events = eventProvider.getEventsForDate(_selectedDate);
 
-          if (events.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.event_available,
-                    size: 64,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No events for this day',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+          return CustomScrollView(
+            slivers: [
+              // Simple App Bar - Clean style without gradient
+              SliverAppBar(
+                expandedHeight: 80,
+                floating: false,
+                pinned: true,
+                backgroundColor:
+                    colorScheme.surfaceContainerLowest, // Pure black
+                surfaceTintColor: Colors.transparent,
+                flexibleSpace: FlexibleSpaceBar(
+                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                  title: Text(
+                    'Today',
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tap the + button to add an event',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            );
-          }
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-            children: [
-              // Event timeline
-              for (final event in events)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _EventTimelineCard(
-                    event: event,
-                    isToday: _isToday(_selectedDate),
+              // Day selector chips in a sliver
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      // Today chip - tap to return to today
+                      FilterChip(
+                        label: Text(
+                          'Today',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        selected: _isToday(_selectedDate),
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedDate = now;
+                            });
+                          }
+                        },
+                        showCheckmark: false,
+                        backgroundColor: colorScheme.surfaceContainerHigh,
+                        selectedColor: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      // Day chips for the next 6 days
+                      for (int i = 1; i <= 6; i++)
+                        Builder(
+                          builder: (context) {
+                            final date = now.add(Duration(days: i));
+                            final isSelected =
+                                _selectedDate.year == date.year &&
+                                _selectedDate.month == date.month &&
+                                _selectedDate.day == date.day;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(_getDayName(date.weekday)),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedDate = date;
+                                    });
+                                  }
+                                },
+                                showCheckmark: false,
+                                backgroundColor:
+                                    colorScheme.surfaceContainerHigh,
+                                selectedColor: colorScheme.primaryContainer,
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Content
+              if (events.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.event_available,
+                          size: 64,
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No events for this day',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap the + button to add an event',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _EventTimelineCard(
+                          event: events[index],
+                          isToday: _isToday(_selectedDate),
+                        ),
+                      );
+                    }, childCount: events.length),
                   ),
                 ),
             ],

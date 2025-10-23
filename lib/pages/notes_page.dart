@@ -394,17 +394,6 @@ Time management is getting better. Need to maintain consistency.''',
               : _buildFolderAndNotesList(cs),
         ],
       ),
-      floatingActionButton: _selectedCategoryId != null
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                _showCreateNoteDialog(context);
-              },
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
-              icon: const Icon(Icons.add),
-              label: const Text('New Note'),
-            )
-          : null,
     );
   }
 
@@ -536,55 +525,6 @@ Time management is getting better. Need to maintain consistency.''',
 
           const SizedBox(height: 100), // Space for FAB
         ]),
-      ),
-    );
-  }
-
-  void _showCreateNoteDialog(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: cs.surfaceContainerHigh,
-        title: Text('Create New Note', style: TextStyle(color: cs.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.description, color: cs.primary),
-              title: Text('Text Note', style: TextStyle(color: cs.onSurface)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Text note creation')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.picture_as_pdf, color: cs.error),
-              title: Text(
-                'PDF Document',
-                style: TextStyle(color: cs.onSurface),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('PDF upload')));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.folder, color: cs.tertiary),
-              title: Text('New Folder', style: TextStyle(color: cs.onSurface)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Folder creation')),
-                );
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

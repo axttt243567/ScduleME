@@ -83,133 +83,6 @@ class _CalendarPageState extends State<CalendarPage> {
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest, // Pure black X-style
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.surfaceContainerLowest, // Pure black
-        surfaceTintColor: Colors.transparent,
-        toolbarHeight: 56,
-        title: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              Text(
-                'Calendar',
-                style: theme.textTheme.headlineMedium,
-              ), // X-style bold title
-              const SizedBox(width: 12),
-              // View mode filter chips
-              FilterChip(
-                label: Text(
-                  'Yearly',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _viewMode == CalendarViewMode.yearly
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
-                    fontWeight: _viewMode == CalendarViewMode.yearly
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                selected: _viewMode == CalendarViewMode.yearly,
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _viewMode = CalendarViewMode.yearly;
-                    });
-                    // Scroll to current month when yearly view is selected
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      _scrollToCurrentMonth();
-                    });
-                  }
-                },
-                showCheckmark: false,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                selectedColor: colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              FilterChip(
-                label: Text(
-                  'Monthly',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _viewMode == CalendarViewMode.monthly
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
-                    fontWeight: _viewMode == CalendarViewMode.monthly
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                selected: _viewMode == CalendarViewMode.monthly,
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _viewMode = CalendarViewMode.monthly;
-                    });
-                  }
-                },
-                showCheckmark: false,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                selectedColor: colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              FilterChip(
-                label: Text(
-                  'Weekly',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: _viewMode == CalendarViewMode.weekly
-                        ? colorScheme.onPrimary
-                        : colorScheme.onSurface,
-                    fontWeight: _viewMode == CalendarViewMode.weekly
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                selected: _viewMode == CalendarViewMode.weekly,
-                onSelected: (selected) {
-                  if (selected) {
-                    setState(() {
-                      _viewMode = CalendarViewMode.weekly;
-                    });
-                  }
-                },
-                showCheckmark: false,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                backgroundColor: colorScheme.surfaceContainerHighest,
-                selectedColor: colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              // Refresh chip - resets to today's date and refreshes events
-              ActionChip(
-                label: const Icon(Icons.refresh, size: 16),
-                tooltip: 'Reset to Today',
-                onPressed: () {
-                  setState(() {
-                    _focusedDate = DateTime.now();
-                  });
-                  context.read<EventProvider>().loadEvents();
-                  // Scroll to current month if in yearly view
-                  if (_viewMode == CalendarViewMode.yearly) {
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      _scrollToCurrentMonth();
-                    });
-                  }
-                },
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.all(6),
-              ),
-            ],
-          ),
-        ),
-      ),
       body: Consumer<EventProvider>(
         builder: (context, eventProvider, child) {
           if (eventProvider.isLoading) {
@@ -246,27 +119,201 @@ class _CalendarPageState extends State<CalendarPage> {
 
           final allEvents = eventProvider.events;
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Calendar view based on mode
-                  if (_viewMode == CalendarViewMode.yearly)
-                    _buildYearlyView(context, allEvents)
-                  else if (_viewMode == CalendarViewMode.monthly)
-                    _buildMonthlyView(context, allEvents)
-                  else
-                    _buildWeeklyView(context, allEvents),
-
-                  const SizedBox(height: 24),
-
-                  // Analytics section
-                  _buildAnalytics(context, allEvents),
-                ],
+          return CustomScrollView(
+            slivers: [
+              // Collapsible App Bar - X-style with gradient
+              SliverAppBar(
+                expandedHeight: 120,
+                floating: false,
+                pinned: true,
+                backgroundColor:
+                    colorScheme.surfaceContainerLowest, // Pure black
+                surfaceTintColor: Colors.transparent,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(
+                    'Calendar',
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  background: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colorScheme.primaryContainer,
+                          colorScheme.secondaryContainer,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+
+              // View mode filter chips in a sliver
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      // View mode filter chips
+                      FilterChip(
+                        label: Text(
+                          'Yearly',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: _viewMode == CalendarViewMode.yearly
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurface,
+                            fontWeight: _viewMode == CalendarViewMode.yearly
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        selected: _viewMode == CalendarViewMode.yearly,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _viewMode = CalendarViewMode.yearly;
+                            });
+                            // Scroll to current month when yearly view is selected
+                            Future.delayed(
+                              const Duration(milliseconds: 300),
+                              () {
+                                _scrollToCurrentMonth();
+                              },
+                            );
+                          }
+                        },
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        selectedColor: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      FilterChip(
+                        label: Text(
+                          'Monthly',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: _viewMode == CalendarViewMode.monthly
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurface,
+                            fontWeight: _viewMode == CalendarViewMode.monthly
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        selected: _viewMode == CalendarViewMode.monthly,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _viewMode = CalendarViewMode.monthly;
+                            });
+                          }
+                        },
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        selectedColor: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      FilterChip(
+                        label: Text(
+                          'Weekly',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: _viewMode == CalendarViewMode.weekly
+                                ? colorScheme.onPrimary
+                                : colorScheme.onSurface,
+                            fontWeight: _viewMode == CalendarViewMode.weekly
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        selected: _viewMode == CalendarViewMode.weekly,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _viewMode = CalendarViewMode.weekly;
+                            });
+                          }
+                        },
+                        showCheckmark: false,
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        selectedColor: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      // Refresh chip - resets to today's date and refreshes events
+                      ActionChip(
+                        label: const Icon(Icons.refresh, size: 16),
+                        tooltip: 'Reset to Today',
+                        onPressed: () {
+                          setState(() {
+                            _focusedDate = DateTime.now();
+                          });
+                          context.read<EventProvider>().loadEvents();
+                          // Scroll to current month if in yearly view
+                          if (_viewMode == CalendarViewMode.yearly) {
+                            Future.delayed(
+                              const Duration(milliseconds: 300),
+                              () {
+                                _scrollToCurrentMonth();
+                              },
+                            );
+                          }
+                        },
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(6),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Content slivers
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Calendar view based on mode
+                      if (_viewMode == CalendarViewMode.yearly)
+                        _buildYearlyView(context, allEvents)
+                      else if (_viewMode == CalendarViewMode.monthly)
+                        _buildMonthlyView(context, allEvents)
+                      else
+                        _buildWeeklyView(context, allEvents),
+
+                      const SizedBox(height: 24),
+
+                      // Analytics section
+                      _buildAnalytics(context, allEvents),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

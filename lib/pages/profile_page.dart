@@ -38,42 +38,13 @@ class ProfilePage extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Background gradient - X-style minimal
+                  // Background gradient - Same as Notes page
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          cs.primary.withOpacity(0.15), // Twitter blue
-                          cs.secondary.withOpacity(0.1), // Pink
-                          cs.tertiary.withOpacity(0.08), // Purple
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Decorative circles - more subtle
-                  Positioned(
-                    top: -50,
-                    right: -50,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: cs.primary.withOpacity(0.05), // Very subtle
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -30,
-                    left: -30,
-                    child: Container(
-                      width: 150,
-                      height: 150,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: cs.tertiary.withOpacity(0.1),
+                        colors: [cs.primaryContainer, cs.secondaryContainer],
                       ),
                     ),
                   ),

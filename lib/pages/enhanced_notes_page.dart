@@ -264,37 +264,37 @@ Today was productive. Completed most of my tasks.
       StickyNote(
         id: 'sticky_1',
         content: '🎯 Exam on Friday - Review chapters 3-5',
-        color: const Color(0xFFFFEB3B), // Yellow
+        color: const Color(0xFFFFF9C4), // Soft Yellow
         isPinned: true,
       ),
       StickyNote(
         id: 'sticky_2',
         content: '📝 Submit assignment by Monday 11:59 PM',
-        color: const Color(0xFFFF9800), // Orange
+        color: const Color(0xFFFFCCBC), // Soft Peach
         isPinned: true,
       ),
       StickyNote(
         id: 'sticky_3',
         content: '💡 Project idea: Build a study tracker app',
-        color: const Color(0xFF4CAF50), // Green
+        color: const Color(0xFFC8E6C9), // Soft Mint Green
         isPinned: false,
       ),
       StickyNote(
         id: 'sticky_4',
         content: '📞 Call advisor about course selection',
-        color: const Color(0xFF2196F3), // Blue
+        color: const Color(0xFFBBDEFB), // Soft Sky Blue
         isPinned: false,
       ),
       StickyNote(
         id: 'sticky_5',
         content: '🏃 Don\'t forget gym at 5 PM today',
-        color: const Color(0xFFE91E63), // Pink
+        color: const Color(0xFFF8BBD0), // Soft Pink
         isPinned: false,
       ),
       StickyNote(
         id: 'sticky_6',
         content: '🛒 Buy: notebooks, pens, highlighters',
-        color: const Color(0xFF9C27B0), // Purple
+        color: const Color(0xFFE1BEE7), // Soft Lavender
         isPinned: false,
       ),
     ];
@@ -454,24 +454,27 @@ Today was productive. Completed most of my tasks.
               ),
             ),
 
-            // Sticky Notes Grid
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 1.0,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+            // Sticky Notes Horizontal Scroll
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 180, // Fixed height for sticky notes row
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _stickyNotes.length,
+                  itemBuilder: (context, index) {
+                    final sticky = _stickyNotes[index];
+                    return Container(
+                      width: 160, // Fixed width for each sticky note
+                      margin: const EdgeInsets.only(right: 12),
+                      child: _StickyNoteCard(
+                        stickyNote: sticky,
+                        onTap: () => _editStickyNote(sticky),
+                        onPin: () => _togglePin(sticky),
+                      ),
+                    );
+                  },
                 ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final sticky = _stickyNotes[index];
-                  return _StickyNoteCard(
-                    stickyNote: sticky,
-                    onTap: () => _editStickyNote(sticky),
-                    onPin: () => _togglePin(sticky),
-                  );
-                }, childCount: _stickyNotes.length),
               ),
             ),
 
@@ -511,43 +514,6 @@ Today was productive. Completed most of my tasks.
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
-
-      // Floating Action Buttons
-      floatingActionButton: _selectedCategoryId == null
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Add Sticky Note
-                FloatingActionButton.small(
-                  heroTag: 'sticky',
-                  onPressed: () => _addStickyNote(),
-                  backgroundColor: cs.tertiaryContainer,
-                  child: Icon(Icons.add, color: cs.onTertiaryContainer),
-                ),
-                const SizedBox(height: 12),
-                // Add Main Note
-                FloatingActionButton.extended(
-                  heroTag: 'note',
-                  onPressed: () => _addMainNote(),
-                  backgroundColor: cs.primaryContainer,
-                  icon: Icon(Icons.edit, color: cs.onPrimaryContainer),
-                  label: Text(
-                    'New Note',
-                    style: TextStyle(
-                      color: cs.onPrimaryContainer,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : FloatingActionButton.extended(
-              onPressed: () => _showCreateNoteDialog(context),
-              backgroundColor: cs.primary,
-              foregroundColor: cs.onPrimary,
-              icon: const Icon(Icons.add),
-              label: const Text('New Note'),
-            ),
     );
   }
 
@@ -589,6 +555,7 @@ Today was productive. Completed most of my tasks.
 
     if (folders.isEmpty && notes.isEmpty) {
       return SliverFillRemaining(
+        hasScrollBody: false,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -683,55 +650,6 @@ Today was productive. Completed most of my tasks.
     );
   }
 
-  void _showCreateNoteDialog(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: cs.surfaceContainerHigh,
-        title: Text('Create New Note', style: TextStyle(color: cs.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.description, color: cs.primary),
-              title: Text('Text Note', style: TextStyle(color: cs.onSurface)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Text note creation')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.picture_as_pdf, color: cs.error),
-              title: Text(
-                'PDF Document',
-                style: TextStyle(color: cs.onSurface),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('PDF upload')));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.folder, color: cs.tertiary),
-              title: Text('New Folder', style: TextStyle(color: cs.onSurface)),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Folder creation')),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _togglePin(StickyNote sticky) {
     setState(() {
       final index = _stickyNotes.indexWhere((s) => s.id == sticky.id);
@@ -752,18 +670,6 @@ Today was productive. Completed most of my tasks.
       const SnackBar(content: Text('Edit sticky note (feature coming soon)')),
     );
   }
-
-  void _addStickyNote() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add sticky note (feature coming soon)')),
-    );
-  }
-
-  void _addMainNote() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Add main note (feature coming soon)')),
-    );
-  }
 }
 
 /// Sticky Note Card Widget
@@ -781,70 +687,47 @@ class _StickyNoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: stickyNote.color.withOpacity(0.9),
-      elevation: stickyNote.isPinned ? 8 : 2,
+      color: stickyNote.color.withOpacity(0.95),
+      elevation: stickyNote.isPinned ? 4 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: stickyNote.isPinned
-            ? BorderSide(color: stickyNote.color, width: 2)
+            ? BorderSide(color: stickyNote.color.withOpacity(0.5), width: 2)
             : BorderSide.none,
       ),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Text(
-                      stickyNote.content,
-                      style: const TextStyle(
-                        color: Color(0xFF212121),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                      ),
-                      maxLines: 6,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  stickyNote.content,
+                  style: const TextStyle(
+                    color: Color(0xFF212121),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
                   ),
-                  const SizedBox(height: 8),
-                  // Timestamp
-                  Text(
-                    _formatTime(stickyNote.createdAt),
-                    style: TextStyle(
-                      color: const Color(0xFF212121).withOpacity(0.6),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Pin button
-            Positioned(
-              top: 4,
-              right: 4,
-              child: IconButton(
-                icon: Icon(
-                  stickyNote.isPinned
-                      ? Icons.push_pin
-                      : Icons.push_pin_outlined,
-                  color: const Color(0xFF212121),
-                  size: 18,
+                  maxLines: 6,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                onPressed: onPin,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              // Timestamp
+              Text(
+                _formatTime(stickyNote.createdAt),
+                style: TextStyle(
+                  color: const Color(0xFF212121).withOpacity(0.6),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
